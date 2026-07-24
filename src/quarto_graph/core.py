@@ -9,6 +9,7 @@ wikilink resolve to."
 """
 
 import re
+import sys
 from pathlib import Path, PurePosixPath
 
 import yaml
@@ -120,7 +121,7 @@ def parse_page(path, project_root):
         try:
             meta = yaml.safe_load(m.group(1)) or {}
         except yaml.YAMLError as exc:
-            print("WARNING: bad frontmatter in {}: {}".format(path, exc))
+            print("WARNING: bad frontmatter in {}: {}".format(path, exc), file=sys.stderr)
     meta = meta if isinstance(meta, dict) else {}
     rel = PurePosixPath(path.relative_to(project_root).as_posix())
     return {
@@ -152,7 +153,7 @@ def build_registry(pages):
         existing = registry.get(key)
         if existing is not None and existing is not page:
             print("WARNING: duplicate link target '{}' ({} vs {}); keeping {}".format(
-                name, existing["rel"], page["rel"], existing["rel"]))
+                name, existing["rel"], page["rel"], existing["rel"]), file=sys.stderr)
             return
         registry[key] = page
 

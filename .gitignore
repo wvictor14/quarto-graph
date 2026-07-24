@@ -12,3 +12,5 @@ renv/
 .env.local
 .DS_Store
 Thumbs.db
+
+/.luarc.json

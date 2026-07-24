@@ -1,12 +1,7 @@
 -- Ships graph.js/graph.css as a proper Quarto HTML dependency.
 --
--- Earlier attempt used format.html.include-in-header with a literal
--- "<script src=\"_extensions/quarto-graph/graph.js\">" text block. Quarto only
--- resource-rewrites extension-relative paths in raw include-in-header text
--- for the project's ROOT page — nested pages kept the literal, wrong,
--- unrewritten path and 404'd. add_html_dependency is the mechanism Quarto
--- extensions are meant to use for this exact reason: it computes the
--- correct relative path for every page's depth, not just the root's.
+-- add_html_dependency is the mechanism how Quarto computes the
+-- correct relative path for every page's depth (not just the root's).
 function Meta(meta)
   quarto.doc.add_html_dependency({
     name = "quarto-graph",
@@ -19,10 +14,8 @@ end
 
 -- Wikilink resolution + backlinks, both driven by a registry
 -- quarto_graph.prerender builds once across every page Quarto is about to
--- render — a per-page filter can't discover the rest of the project on its
--- own. Resolution here only transforms the in-memory Pandoc AST for this
--- one render; the .qmd source is never rewritten (see
--- docs/adr/0001-non-destructive-render-time-resolution.md).
+-- render. Resolution here only transforms the in-memory Pandoc AST for this
+-- one render; the .qmd source is never rewritten
 
 local registry = nil
 
@@ -136,7 +129,7 @@ local function resolve_run(text, reg)
     if link ~= nil then
       out:insert(link)
     else
-      io.stderr:write("WARNING: unresolved wikilink [[" .. content .. "]]\n")
+      quarto.log.warning("unresolved wikilink [[" .. content .. "]]")
       out:extend(text_to_inlines("[[" .. content .. "]]"))
     end
     pos = e + 1

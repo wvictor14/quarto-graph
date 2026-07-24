@@ -55,7 +55,7 @@ def test_parse_page_bad_yaml_frontmatter_warns_and_continues(tmp_path, capsys):
     f.write_text("---\nkey: [unterminated\n---\nbody\n", encoding="utf-8")
     page = parse_page(f, tmp_path)
     assert page["meta"] == {}
-    assert "WARNING: bad frontmatter" in capsys.readouterr().out
+    assert "WARNING: bad frontmatter" in capsys.readouterr().err
 
 
 def test_parse_page_reads_type(tmp_path):
@@ -105,7 +105,7 @@ def test_build_registry_duplicate_target_keeps_first_and_warns(capsys):
     second = _page("Dup", rel="b/Dup.md")
     registry = build_registry([first, second])
     assert registry["dup"] is first
-    assert "WARNING: duplicate link target" in capsys.readouterr().out
+    assert "WARNING: duplicate link target" in capsys.readouterr().err
 
 
 def test_build_registry_registers_by_title_not_just_filename_stem():

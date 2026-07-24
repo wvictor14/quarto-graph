@@ -7,6 +7,8 @@ each page's own render time; this project never rewrites page source
 """
 
 import json
+import os
+import sys
 from pathlib import Path
 
 from .core import (
@@ -66,10 +68,12 @@ def run_prerender(project_root, strict=False):
     # with no directory-creation call of its own.
     (project_root / PAGES_DIR).mkdir(parents=True, exist_ok=True)
 
-    for item in unresolved:
-        print("WARNING: unresolved wikilink {} in {}".format(item["text"], item["page"]["rel"]))
-    print("quarto-graph prerender: {} pages, {} link targets, {} unresolved wikilinks".format(
-        len(pages), len(registry), len(unresolved)))
+    quiet = os.environ.get("QUARTO_PROJECT_SCRIPT_QUIET") == "1"
+    if not quiet:
+        for item in unresolved:
+            print("WARNING: unresolved wikilink {} in {}".format(item["text"], item["page"]["rel"]), file=sys.stderr)
+        print("quarto-graph prerender: {} pages, {} link targets, {} unresolved wikilinks".format(
+            len(pages), len(registry), len(unresolved)), file=sys.stderr)
     if unresolved and strict:
         raise QuartoGraphError("unresolved wikilinks with --strict")
 

@@ -38,10 +38,25 @@ def test_run_prerender_non_strict_does_not_raise(project):
     run_prerender(project, strict=False)
 
 
-def test_run_prerender_prints_unresolved_warning(project, capsys):
+def test_run_prerender_prints_unresolved_warning_to_stderr(project, capsys):
     run_prerender(project)
-    out = capsys.readouterr().out
-    assert "WARNING: unresolved wikilink [[Missing Target]] in Home.md" in out
+    captured = capsys.readouterr()
+    assert "WARNING: unresolved wikilink [[Missing Target]] in Home.md" in captured.err
+    assert captured.out == ""
+
+
+def test_run_prerender_quiet_suppresses_warning_and_summary(project, monkeypatch, capsys):
+    monkeypatch.setenv("QUARTO_PROJECT_SCRIPT_QUIET", "1")
+    run_prerender(project)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_run_prerender_quiet_still_raises_on_strict(project, monkeypatch):
+    monkeypatch.setenv("QUARTO_PROJECT_SCRIPT_QUIET", "1")
+    with pytest.raises(QuartoGraphError, match="unresolved wikilinks"):
+        run_prerender(project, strict=True)
 
 
 def test_run_prerender_scans_whole_project_regardless_of_a_partial_render(project):

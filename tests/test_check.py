@@ -44,6 +44,19 @@ def test_check_links_ignores_fenced_wikilinks(tmp_path):
     assert check_links(tmp_path) == []
 
 
+def test_check_links_duplicate_target_warning_stays_off_stdout(tmp_path, capsys):
+    # cli.py's only stdout output is the final json.dumps(problems) line --
+    # editor tooling parses stdout as JSON, so any warning core.py emits
+    # (e.g. build_registry's duplicate-target warning) must go to stderr,
+    # never stdout, regardless of whether it ends up in the returned data.
+    _write(tmp_path, "a/Dup.md", "content\n")
+    _write(tmp_path, "b/Dup.md", "content\n")
+    check_links(tmp_path)
+    captured = capsys.readouterr()
+    assert "WARNING" in captured.err
+    assert captured.out == ""
+
+
 # --- discover_pages ------------------------------------------------------------
 
 def test_discover_pages_finds_qmd_and_md(tmp_path):
