@@ -28,7 +28,11 @@ To use in your own project: `quarto add` this extension, then add
 ## next steps
 
 - [x] treat normal markdown links as nodes in graph (currently are ignored)
-- [x] publish with GHA
+- [ ] better handle on widget embed (layouts, configuration)
+- [ ] publish with GHA
+- [ ] nested links - how do we handle folders
+- [ ] publish to pip
+- [ ] publish to quarto extension distributor
 - [ ] test in another project (evaluate the ux for install, and usage)
 - [ ] optimize graph widget
 
@@ -49,7 +53,6 @@ Optional nice to haves
 - [ ] customization of graph widget
 - [x] support backlinks graph data enables automatic backlink injection
 - [x] Aliases / naming
-- [ ] nested links
 - [ ] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
 - [ ] vscode/positron extension that handles autocomplete? other features?
 - [ ] customize colors for the nodes
