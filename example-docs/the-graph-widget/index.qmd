@@ -8,8 +8,9 @@ Two views of the same data, both reading the same `graph.json`:
 
 - **Full graph view**: place the `{{{< quarto-graph-full >}}}` shortcode
   on any page you choose (this project puts it on [[Graph]]) to show every
-  page as a node and every resolved wikilink as an edge. Drag nodes,
-  scroll to zoom, click a node to open that page.
+  page as a node and every resolved wikilink, or plain Markdown link
+  between two project pages, as an edge. Drag nodes, scroll to zoom, click
+  a node to open that page.
 - **Sidebar mini-panel**: on every page, a small 1-hop subgraph (the
   current page plus everything it directly links to or from) mounts at the
   top of the right-hand TOC sidebar. Clicking it opens a larger modal

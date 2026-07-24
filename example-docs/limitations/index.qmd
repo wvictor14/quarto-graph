@@ -30,3 +30,14 @@ A real single-backtick code span like `` `[[literal example]]` `` renders
 correctly. It stays as plain code text in the page, not a broken link, and
 the pre-render scan skips it the same way it skips fenced code blocks, so
 no spurious unresolved-wikilink warning is printed either.
+
+## A wikilink immediately followed by `:`
+
+`[[Target]]:` at the very start of a line, most commonly a list item like
+`- [[Target]]: some description`, isn't a quarto-graph bug at all. Pandoc's
+own Markdown reader parses `[Target]:` as a
+[link reference definition](https://spec.commonmark.org/0.31.2/#link-reference-definitions)
+before quarto-graph's filter ever runs, consuming the rest of the line as
+the link's destination and silently dropping that list item's visible
+text. Wrapping the wikilink in bold, `- **[[Target]]**: some description`,
+avoids it, since the line no longer starts with a bare `[`.

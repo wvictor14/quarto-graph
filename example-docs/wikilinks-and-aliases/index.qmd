@@ -92,6 +92,29 @@ To make broken links fail the *build* instead of just warning, pass
 `--strict` to the pre-render script (edit the `pre-render` line in
 `_extensions/quarto-graph/_extension.yml`); see [[Under the Hood]].
 
+## Plain Markdown links resolve too, but differently
+
+A normal Markdown link, `[text](other.qmd)`, is also treated as an edge and
+a backlink source, not just `[[wikilinks]]`. See [[Backlinks]] and
+[[The Graph Widget]].
+
+The resolution mechanism is different, though: a Markdown link resolves by
+*path*, not by registry name lookup. The href is resolved relative to the
+linking page's own path (or from the project root, for a leading `/`), and
+must land on another page's real project path. That means none of the
+wikilink conveniences apply:
+
+- no case-insensitivity — the path has to match exactly
+- no `also-known-as:` names — only the page's actual path resolves
+- no heading-anchor slug rewriting — a `#fragment` is stripped and ignored,
+  not resolved
+- no display-text syntax — the link text is whatever you already wrote
+
+An external URL, a protocol-relative href, or a path that doesn't match any
+project page is left alone entirely. Unlike an unresolved wikilink, this
+doesn't print a warning — a Markdown link to an asset, an external site, or
+a typo'd path isn't necessarily a mistake. See [[Limitations]].
+
 ## Clashing names
 
 If two pages register the same target name (two files sharing a stem in

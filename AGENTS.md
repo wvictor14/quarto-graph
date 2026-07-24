@@ -6,6 +6,11 @@ vault-to-website converter: it does not import, transform, or mirror an
 Obsidian vault, does not convert Obsidian callouts, and never writes or
 rewrites files anywhere in the consuming project.
 
+## Dev environment
+
+Use `uv sync` to set up the Python environment. Never hand-roll a `venv/` +
+`pip install`; the repo already has `pyproject.toml` + `uv.lock` for this.
+
 ## Prose
 
 When writing documentation, use the skill /prose-style to ensure AI-slop and 
@@ -44,7 +49,9 @@ page's own render time — never written into the `.qmd` source.
 **Graph widget / `graph.json`**:
 The force-directed visualization (full-page view and per-page sidebar
 mini-panel) reading `graph.json`: nodes are pages, edges are resolved
-wikilinks. Node URLs in `graph.json` must be the actual final rendered
+wikilinks and internal Markdown links (`[text](other.qmd)`) between project
+pages; an external URL, asset link, or non-matching path is left alone,
+not an edge. Node URLs in `graph.json` must be the actual final rendered
 paths (the browser navigates to them directly, with no help from Quarto's
 own link rewriting), so they're assembled from each page's own real output
 path after that page renders — never computed independently by this
@@ -57,13 +64,3 @@ How you opt into the full graph page — e.g. `{{< quarto-graph-full >}}`
 placed on any page you choose. The extension never auto-generates a page
 into your project; if you want one, you place the shortcode yourself.
 
-## Deliberately dropped
-
-- **Vault.** No separate source directory, no generated output tree. Source
-  and destination are the same project files.
-- **Callouts.** Obsidian `> [!type]` callout-block conversion is out of
-  scope entirely — not implemented, not documented.
-- **Pretty URLs (as a feature of this project).** Wikilink hrefs are plain
-  relative links to another page's source path; Quarto's own project link
-  rewriting resolves the final URL shape. This project has no output-path
-  convention of its own to get wrong.

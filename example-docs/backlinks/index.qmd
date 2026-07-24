@@ -10,7 +10,7 @@ A **backlink** is an automatic list of every page that links to the current page
 
 Rendering your site, quarto-graph:
 
-1. Scans all wikilinks across your pages
+1. Scans all wikilinks and internal Markdown links across your pages
 2. For each target page, collects all pages linking to it
 3. Appends a "Backlinks" section at the bottom of that page
 4. Sorts the list alphabetically by page title
@@ -19,10 +19,13 @@ Both this page and [[The Graph Widget]] link here from [[quarto-graph|the home p
 
 ## What counts as a backlink
 
-Backlinks are created only from **wikilinks** (the double-bracket syntax):
+Backlinks are created from **wikilinks** and from plain **Markdown links**
+that resolve to another page in this project:
 
 - `[[Backlinks]]` counts as a backlink
-- `[Backlinks](./backlinks.qmd)` does NOT count
+- `[Backlinks](./backlinks.qmd)` also counts, since it resolves to this page
+- `[Backlinks](https://example.com)` does NOT count, since it's external
+- linking to the same page twice, wikilink and Markdown link both, only backlinks once
 
 Backlinks and [[The Graph Widget|graph edges]] are generated from the same scan, so they always stay in sync.
 

@@ -7,6 +7,7 @@ from quarto_graph.core import (
     find_wikilinks_outside_fences,
     normalize_ws,
     parse_page,
+    resolve_markdown_href,
 )
 
 
@@ -175,6 +176,99 @@ def test_build_backlinks_resolves_also_known_as():
     backlinks, unresolved = build_backlinks([home, other], registry)
     assert backlinks[other["rel"]] == [home]
     assert unresolved == []
+
+
+def test_build_backlinks_records_markdown_link_to_other_page():
+    home = _body_page("Home", "See [Other](Other.md).\n")
+    other = _body_page("Other", "content\n")
+    registry = build_registry([home, other])
+    backlinks, unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+    assert unresolved == []
+
+
+def test_build_backlinks_markdown_link_with_fragment_resolves():
+    home = _body_page("Home", "See [Other](Other.md#some-heading).\n")
+    other = _body_page("Other", "content\n")
+    registry = build_registry([home, other])
+    backlinks, _unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+
+
+def test_build_backlinks_markdown_link_resolves_nested_relative_path():
+    home = _body_page("Home", "See [Other](../Other.md).\n", rel="sub/Home.md")
+    other = _body_page("Other", "content\n", rel="Other.md")
+    registry = build_registry([home, other])
+    backlinks, _unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+
+
+def test_build_backlinks_markdown_link_self_link_not_recorded():
+    home = _body_page("Home", "See [Home](Home.md) itself.\n")
+    registry = build_registry([home])
+    backlinks, _unresolved = build_backlinks([home], registry)
+    assert backlinks == {}
+
+
+def test_build_backlinks_ignores_external_and_asset_and_unmatched_markdown_links():
+    home = _body_page(
+        "Home",
+        "[ext](https://example.com/page) "
+        "[mail](mailto:a@example.com) "
+        "[img](image.png) "
+        "[missing](DoesNotExist.md)\n",
+    )
+    registry = build_registry([home])
+    backlinks, unresolved = build_backlinks([home], registry)
+    assert backlinks == {}
+    assert unresolved == []
+
+
+def test_build_backlinks_markdown_link_resolves_bare_href_with_space():
+    # Pandoc accepts an unescaped space in a bare destination (confirmed via
+    # `pandoc -f markdown -t html`, contrary to strict CommonMark), so
+    # quarto-graph needs to resolve it the same way.
+    home = _body_page("Home", "See [Other](My Other.md).\n")
+    other = _body_page("Other", "content\n", rel="My Other.md")
+    registry = build_registry([home, other])
+    backlinks, _unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+
+
+def test_build_backlinks_markdown_link_resolves_angle_bracket_href():
+    home = _body_page("Home", "See [Other](<My Other.md>).\n")
+    other = _body_page("Other", "content\n", rel="My Other.md")
+    registry = build_registry([home, other])
+    backlinks, _unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+
+
+def test_build_backlinks_dedupes_wikilink_and_markdown_link_to_same_target():
+    home = _body_page("Home", "[[Other]] and [Other](Other.md) again.\n")
+    other = _body_page("Other", "content\n")
+    registry = build_registry([home, other])
+    backlinks, _unresolved = build_backlinks([home, other], registry)
+    assert backlinks[other["rel"]] == [home]
+
+
+# --- resolve_markdown_href -------------------------------------------------------
+
+def test_resolve_markdown_href_relative_to_same_directory():
+    assert resolve_markdown_href(PurePosixPath("Home.md"), "Other.md") == PurePosixPath("Other.md")
+
+
+def test_resolve_markdown_href_root_relative():
+    assert resolve_markdown_href(PurePosixPath("sub/Home.md"), "/Other.md") == PurePosixPath("Other.md")
+
+
+def test_resolve_markdown_href_rejects_external_scheme_and_protocol_relative():
+    assert resolve_markdown_href(PurePosixPath("Home.md"), "https://example.com/x") is None
+    assert resolve_markdown_href(PurePosixPath("Home.md"), "//example.com/x") is None
+    assert resolve_markdown_href(PurePosixPath("Home.md"), "mailto:a@example.com") is None
+
+
+def test_resolve_markdown_href_fragment_only_is_none():
+    assert resolve_markdown_href(PurePosixPath("Home.md"), "#heading") is None
 
 
 # --- find_wikilinks_outside_fences ----------------------------------------------

@@ -12,7 +12,8 @@ runtime. None of them ever rewrite your page source:
    scan every time, even when Quarto is only rendering one page, because
    that page still needs to resolve links against every *other* page.
    The script parses each page's `title:`, `also-known-as:`, and `type:`
-   frontmatter, scans its body for double-bracketed wikilinks, and builds
+   frontmatter, scans its body for double-bracketed wikilinks and for plain
+   Markdown links that resolve to another project page, and builds
    a registry (name → page) and a backlink map (page → pages that link to
    it). That registry is written to a JSON side-channel file. The page
    source itself is never touched.
@@ -65,6 +66,12 @@ one page it's rendering, not the whole project. That's two
 implementations of the same bracket-syntax grammar, in two languages,
 kept in sync by hand. There's no way around it inside this two-runtime
 architecture. It's a real, permanent seam, not an oversight.
+
+Markdown links don't share this seam. Only Python parses them, to fold
+their targets into the backlink map ([[Wikilinks and Aliases]]). A plain
+Markdown link is already a real Pandoc link by the time Lua sees it, so
+there's nothing for the filter to rewrite — it passes through untouched,
+same as any other link Lua doesn't recognize as a wikilink.
 
 ## Strict mode
 

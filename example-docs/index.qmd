@@ -3,19 +3,43 @@ title: quarto-graph
 type: moc
 ---
 
-Adds Obsidian-style wikilink functionality to your own Quarto project's
-pages: linking, backlinks, and a graph visualization.
+`quarto-graph` enables using **Wikilinks** in a quarto website, where pages are
+connected via links. Wikilinks can expediate knowledge discovery, because 
+connections can be explicitly visualized in a graph. This site itself was built
+with `quarto-graph`.
 
-This site is itself built with quarto-graph, and every page here is a real
-page in this same Quarto project. There's no separate source directory.
-If you can read this page, [[Getting Started]] already resolved as a real
-link below.
+Click on a node, which is a link to a specific page of this website.
+
+{{< quarto-graph-full >}}
+
+Connections, the *edges* that connect each *node* in a graph, are automatically 
+determined by a few simple rules:
+
+- All pages are *nodes*
+- Connections between are explicitly determined using double square brackets e.g.
+
+`[[Getting Started]]`
+
+Where the inside text, can be an alias that you give a particular page. Which is
+specified in the page's frontmatter.
+
+Or you can use a regular markdown link
+
+[`[Getting Started](getting-started/index.qmd)`](getting-started/index.qmd)
+
+
+In addition to the graph widget shown above, wikilinks allow us to auto-generate 
+[[Backlinks]], scroll to the end of this page to see all the pages that 
+reference the current page.
+
+*This project is inspired by Obisidian Graph's, but wikilinks have been a feature
+and concept for a long time.*
 
 ## Start here
 
-- [[Getting Started]]: install it, a few lines in `_quarto.yml`, done
-- [[Wikilinks and Aliases]]: the linking syntax and how targets resolve
-- [[Backlinks]]: the "pages that link here" section, injected live
-- [[The Graph Widget]]: the full graph view and the sidebar mini-panel
-- [[Limitations]]: what's not supported yet
-- [[Under the Hood]]: the resolution pipeline, for when something goes wrong
+- **[[Getting Started]]**: install it, a few lines in `_quarto.yml`
+- **[[Wikilinks and Aliases]]**: the linking syntax and how links get resolved
+- **[[Backlinks]]**: the "pages that link here" section, injected live at runtime
+- **[[The Graph Widget]]**: the full graph view and the sidebar mini-panel
+- **[[Limitations]]**: what's not supported yet
+- **[[Under the Hood]]**: the resolution pipeline, for when something goes wrong

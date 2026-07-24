@@ -5,6 +5,16 @@ $body-bg: #181a1d !default;
 
 /*-- scss:rules --*/
 #quarto-sidebar,
-.sidebar.sidebar-navigation {
+.sidebar.sidebar-navigation,
+nav.quarto-secondary-nav {
   background-color: #131416;
+}
+
+nav.quarto-secondary-nav .breadcrumb {
+  background-color: transparent;
+}
+
+code {
+  background-color: #2b2f33;
+  color: #7fdbca;
 }

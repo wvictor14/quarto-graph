@@ -27,7 +27,29 @@ To use in your own project: `quarto add` this extension, then add
 
 ## next steps
 
-- [ ] treat normal markdown links as nodes in graph (currently are ignored)
-- [ ] publish with GHA
+- [x] treat normal markdown links as nodes in graph (currently are ignored)
+- [x] publish with GHA
 - [ ] test in another project (evaluate the ux for install, and usage)
 - [ ] optimize graph widget
+
+
+# Roadmap
+
+version 1 should have these features:
+
+- the main wikilink feature of connecting links
+  - Parse wikilinks based on obsidian inspired syntax
+  - Store the data (nodes,edges) necessary to plot as graph
+  - Quarto extension to inject graph at runtime
+  - support regular markdown links too
+  - have a basic graph widget similar to obsidian
+
+Optional nice to haves
+
+- [ ] customization of graph widget
+- [x] support backlinks graph data enables automatic backlink injection
+- [x] Aliases / naming
+- [ ] nested links
+- [ ] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
+- [ ] vscode/positron extension that handles autocomplete? other features?
+- [ ] customize colors for the nodes

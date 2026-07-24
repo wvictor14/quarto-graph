@@ -30,14 +30,14 @@ a project.
 whatever Python environment it invokes:
 
 ```sh
-pip install -e ./quarto-graph
+uv add quarto-graph # to be added to PYP
 ```
 
-## 4. Write wikilinks directly in your own pages
+## 4. Write wikilinks
 
-There's no separate source directory to write into. Write
-double-bracketed wikilinks directly in your project's real `.qmd`/`.md`
-pages, wherever they already live:
+This extension enables wikilink syntax, a way to connect internal pages in your 
+project using a simplified syntax. Aliases can be added to individual pages 
+which can then be referenced using wikilink syntax.
 
 ```markdown
 ---
@@ -46,10 +46,24 @@ type: concept
 also-known-as: [alias one, alias two]
 ---
 
+Additionally, this extension enables regular markdown links to also be connected.
+
 # My Page
 
 See [[Other Page]] and [[Other Page#Some Heading|a custom link label]].
 ```
+
+After building connections between wikilinks, pages, regular markdown links, 
+this data can be utilized in two ways, 1. by visualizing with a graph, and 2. 
+autogenerating backlinks.
+
+1. The extension provides a pre-built Graph widget which can be inserted on any 
+page as a shortcode:
+
+`{{{< quarto-graph-full >}}}`
+
+{{< quarto-graph-full >}}
+
 
 See [[Wikilinks and Aliases]] for the full linking syntax.
 

@@ -16,6 +16,12 @@ import yaml
 
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 WIKILINK_RE = re.compile(r"\[\[([^\]\[|#]+)(?:#([^\]\[|]+))?(?:\|([^\]\[]+))?\]\]")
+MARKDOWN_LINK_RE = re.compile(
+    r"(?<!!)\[([^\]]*)\]\("
+    r"(?:<([^<>\n]*)>|([^()\s][^()]*?))"
+    r"(?:\s+(?:\"[^\"]*\"|'[^']*'))?\)"
+)
+URL_SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:")
 FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
 INLINE_CODE_SPAN_RE = re.compile(r"`[^`\n]+`")
 
@@ -66,19 +72,17 @@ def _walk_fences(text):
     yield from flush()
 
 
-def find_wikilinks_outside_fences(text):
-    """Locate every WIKILINK_RE match outside fenced code blocks, returning
-    (line, col, match) triples with 1-indexed positions.
-
-    Used both to build the backlink map (pre-render) and for `quarto-graph
-    check`'s live editor diagnostics, which needs a position per unresolved
-    link."""
+def _find_pattern_outside_fences(text, pattern):
+    """Locate every `pattern` match outside fenced code blocks, returning
+    (line, col, match) triples with 1-indexed positions. Shared by wikilink
+    and Markdown-link scanning, which both need to skip fenced code blocks
+    and inline code spans identically."""
     hits = []
     for kind, start_line, region_text in _walk_fences(text):
         if kind != "region":
             continue
         code_spans = [m.span() for m in INLINE_CODE_SPAN_RE.finditer(region_text)]
-        for m in WIKILINK_RE.finditer(region_text):
+        for m in pattern.finditer(region_text):
             if any(start <= m.start() and m.end() <= end for start, end in code_spans):
                 continue
             line_offset = region_text.count("\n", 0, m.start())
@@ -86,6 +90,50 @@ def find_wikilinks_outside_fences(text):
             col = m.start() - line_start
             hits.append((start_line + line_offset + 1, col + 1, m))
     return hits
+
+
+def find_wikilinks_outside_fences(text):
+    """Locate every WIKILINK_RE match outside fenced code blocks, returning
+    (line, col, match) triples with 1-indexed positions.
+
+    Used both to build the backlink map (pre-render) and for `quarto-graph
+    check`'s live editor diagnostics, which needs a position per unresolved
+    link."""
+    return _find_pattern_outside_fences(text, WIKILINK_RE)
+
+
+def find_markdown_links_outside_fences(text):
+    """Locate every MARKDOWN_LINK_RE match (plain `[text](href)`, not image
+    syntax) outside fenced code blocks, returning (line, col, match) triples
+    with 1-indexed positions -- same contract as find_wikilinks_outside_fences,
+    used by build_backlinks to also treat internal Markdown links as edges."""
+    return _find_pattern_outside_fences(text, MARKDOWN_LINK_RE)
+
+
+def resolve_markdown_href(source_rel, href):
+    """Resolve a Markdown link href against the linking page's own rel path
+    to a project-root-relative PurePosixPath, or None if it isn't a plain
+    internal path -- an external URL (any '<scheme>:'), a protocol-relative
+    href ('//host/...'), or a fragment/query-only href. `.`/`..` segments are
+    collapsed; a leading '/' is root-relative to the project, otherwise
+    relative to source_rel's own directory."""
+    href = href.split("#", 1)[0].split("?", 1)[0]
+    if not href or href.startswith("//") or URL_SCHEME_RE.match(href):
+        return None
+    if href.startswith("/"):
+        segments = href.split("/")
+    else:
+        segments = list(source_rel.parent.parts) + href.split("/")
+    stack = []
+    for seg in segments:
+        if seg in ("", "."):
+            continue
+        if seg == "..":
+            if stack:
+                stack.pop()
+            continue
+        stack.append(seg)
+    return PurePosixPath(*stack) if stack else None
 
 
 def discover_paths(project_root):
@@ -175,19 +223,27 @@ def build_registry(pages):
 
 
 def build_backlinks(pages, registry):
-    """Scan every page's wikilinks and resolve them against the registry.
+    """Scan every page's wikilinks and internal Markdown links, and resolve
+    each against the registry (wikilinks) or the other pages' own rel paths
+    (Markdown links).
 
-    Only the wikilink's target matters for the backlink map itself (not
+    Only the link's target matters for the backlink map itself (not
     anchor/display) — constructing a per-occurrence href is the Lua
     filter's job at each page's own render time, not this pre-render pass.
+    A Markdown link that doesn't resolve to another project page (an
+    external URL, an asset, a typo'd path, ...) is left alone entirely,
+    since unlike an unresolved wikilink it's not necessarily a mistake, so
+    it never lands in `unresolved`.
 
     Returns (backlinks, unresolved):
     - backlinks: {target_page: [source_page, ...]}, one entry per distinct
-      linking page (a page linking to the same target twice backlinks once).
+      linking page (a page linking to the same target twice, even via a mix
+      of wikilink and Markdown link, backlinks once).
     - unresolved: [{"page", "line", "col", "target", "text"}, ...], in scan
       order — line/col are for `quarto-graph check`'s editor diagnostics;
       the pre-render pass only needs "page"/"text" for its warning.
     """
+    path_index = {str(page["rel"]): page for page in pages}
     backlinks = {}
     unresolved = []
     for page in pages:
@@ -202,6 +258,16 @@ def build_backlinks(pages, registry):
                 })
                 continue
             if hit is page or hit["rel"] in seen_targets:
+                continue
+            seen_targets.add(hit["rel"])
+            backlinks.setdefault(hit["rel"], []).append(page)
+        for line, col, match in find_markdown_links_outside_fences(page["body"]):
+            href = match.group(2) if match.group(2) is not None else match.group(3)
+            target_rel = resolve_markdown_href(page["rel"], href.rstrip())
+            if target_rel is None:
+                continue
+            hit = path_index.get(str(target_rel))
+            if hit is None or hit is page or hit["rel"] in seen_targets:
                 continue
             seen_targets.add(hit["rel"])
             backlinks.setdefault(hit["rel"], []).append(page)
