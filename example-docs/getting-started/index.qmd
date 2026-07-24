@@ -4,13 +4,24 @@ order: 0
 type: reference
 ---
 
-## 1. Get the extension into your project
+## Installation
 
-Copy (or `quarto add`, once this is published somewhere `quarto add` can
-reach) the `_extensions/quarto-graph/` directory into your Quarto project, so
-it sits at `<your-project>/_extensions/quarto-graph/`.
+First, install the quarto extension
 
-## 2. Wire it into `_quarto.yml`
+<!--- below is desired installation path, TBD on implementation --->
+
+`quarto add quarto-graph`
+
+Then install the python package, which is used to resolve graph data:
+
+```sh
+uv add quarto-graph
+```
+
+## Add to `_quarto.yml`
+
+To enable the extension in your quarto website, change the project type to 
+`quarto-graph` and add it to the `filters`:
 
 ```yaml
 project:
@@ -20,41 +31,46 @@ filters:
   - quarto-graph
 ```
 
-See [[Under the Hood]] for why it's two separate lines rather than one:
-they're two different, non-interchangeable ways an extension can hook into
-a project.
-
-## 3. Install the Python package
-
-`quarto render` needs the `quarto-graph` Python package installed in
-whatever Python environment it invokes:
-
-```sh
-uv add quarto-graph # to be added to PYP
-```
-
-## 4. Write wikilinks
+## Using Wikilinks
 
 This extension enables wikilink syntax, a way to connect internal pages in your 
-project using a simplified syntax. Aliases can be added to individual pages 
-which can then be referenced using wikilink syntax.
+project using a `[[`. Wikilinks can be a convenient way to refer to pages 
+without explicitly knowing and reference their file path. The way this works is
+by adding an *alias* to individual pages using the `also-known-as` frontmatter
+key:
+
+For example, if we want to refer to the homepage of our website by "Home", we 
+can write in `/index.qmd`:
 
 ```markdown
 ---
-title: My Page
-type: concept
-also-known-as: [alias one, alias two]
+title: quarto-graph
+also-known-as: Home
 ---
-
-Additionally, this extension enables regular markdown links to also be connected.
-
-# My Page
-
-See [[Other Page]] and [[Other Page#Some Heading|a custom link label]].
 ```
 
-After building connections between wikilinks, pages, regular markdown links, 
-this data can be utilized in two ways, 1. by visualizing with a graph, and 2. 
+And then connect it to another page by referencing "Home" with a wikilink in that 
+page. e.g.
+
+*some-other-page/index.qmd*:
+
+```markdown
+Go back to [[Home]] using this wikilink
+```
+
+Additionally, this extension enables regular markdown links to also be 
+connected. For example, these are equivalent:
+
+- `[[Home]]`
+- `[Home](index.qmd)`
+
+See [[Wikilinks and Aliases]] for the full linking syntax.
+
+<!--- should add something about alternative display syntax --->
+
+## Graphs in your website
+
+After building connections between pages, you can embed a graph, and you can 
 autogenerating backlinks.
 
 1. The extension provides a pre-built Graph widget which can be inserted on any 
@@ -64,20 +80,15 @@ page as a shortcode:
 
 {{< quarto-graph-full >}}
 
+See [[The Graph Widget]] for more about the graph widget, how to embed it in 
+pages, and how to customize it.
 
-See [[Wikilinks and Aliases]] for the full linking syntax.
+## Render
 
-## 5. Render
-
-```sh
-quarto preview .
-```
+<!--- not sure if this section is needed --->
 
 A wikilink resolves live, at render time, against every other page in the
-project. Nothing rewrites your `.qmd` source, ever. Adding a *brand new*
-page mid-preview-session needs a restart (stop and re-run `quarto
-preview`) before other pages can link to it; editing an *existing* page's
-own content re-resolves on its own (see [[Under the Hood]]).
+project. Nothing rewrites your `.qmd` source, ever. 
 
 ## Frontmatter reference
 
