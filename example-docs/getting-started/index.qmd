@@ -1,0 +1,73 @@
+---
+title: Getting Started
+type: reference
+---
+
+## 1. Get the extension into your project
+
+Copy (or `quarto add`, once this is published somewhere `quarto add` can
+reach) the `_extensions/quarto-graph/` directory into your Quarto project, so
+it sits at `<your-project>/_extensions/quarto-graph/`.
+
+## 2. Wire it into `_quarto.yml`
+
+```yaml
+project:
+  type: quarto-graph
+
+filters:
+  - quarto-graph
+```
+
+See [[Under the Hood]] for why it's two separate lines rather than one:
+they're two different, non-interchangeable ways an extension can hook into
+a project.
+
+## 3. Install the Python package
+
+`quarto render` needs the `quarto-graph` Python package installed in
+whatever Python environment it invokes:
+
+```sh
+pip install -e ./quarto-graph
+```
+
+## 4. Write wikilinks directly in your own pages
+
+There's no separate source directory to write into. Write
+double-bracketed wikilinks directly in your project's real `.qmd`/`.md`
+pages, wherever they already live:
+
+```markdown
+---
+title: My Page
+type: concept
+also-known-as: [alias one, alias two]
+---
+
+# My Page
+
+See [[Other Page]] and [[Other Page#Some Heading|a custom link label]].
+```
+
+See [[Wikilinks and Aliases]] for the full linking syntax.
+
+## 5. Render
+
+```sh
+quarto preview .
+```
+
+A wikilink resolves live, at render time, against every other page in the
+project. Nothing rewrites your `.qmd` source, ever. Adding a *brand new*
+page mid-preview-session needs a restart (stop and re-run `quarto
+preview`) before other pages can link to it; editing an *existing* page's
+own content re-resolves on its own (see [[Under the Hood]]).
+
+## Frontmatter reference
+
+| Key | Purpose |
+|---|---|
+| `title:` | Page title, and the link text shown when a wikilink has no `\|display` override |
+| `type:` | Colors the node in the graph widget: `concept`, `person`, `reference`, `project`, `experiment`, `moc`; anything else (or omitted) falls back to gray |
+| `also-known-as:` | Extra names this page's wikilinks can be reached by, on top of its filename. A separate key from Quarto's own `aliases:`; see [[Wikilinks and Aliases]] for why |

@@ -1,0 +1,33 @@
+---
+title: Backlinks
+type: concept
+---
+
+Every page that a wikilink resolves to gets a "Backlinks" section appended
+automatically, at render time: a list of every other page that links to
+it. You're reading one of the two source pages behind this page's own
+backlinks section right now. Both this page and [[The Graph Widget]] link
+here from [[quarto-graph|the home page]] and each other, so scroll to the
+bottom of either one to see the list build up.
+
+Nothing about this "Backlinks" section lives in this file. It's injected
+into the page live, by a Pandoc Lua filter, at your own render time, and
+never gets written into this `.qmd` source.
+
+For example, this page's own appended section (as rendered, not as
+written here) looks like:
+
+```markdown
+## Backlinks
+
+- [The Graph Widget](../the-graph-widget/index.qmd)
+- [quarto-graph](../index.qmd)
+```
+
+The list is sorted by title, and only includes pages reached through a
+resolved wikilink. A plain Markdown link (`[text](url)`) written
+directly, bypassing the wikilink syntax entirely, does not count and
+creates no backlink. This also means it does not create an edge in
+[[The Graph Widget]]. Graph edges and backlinks are generated from the
+same scan over the same resolved wikilinks, so they always agree with
+each other by construction, not by coincidence.

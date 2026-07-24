@@ -1,0 +1,8 @@
+---
+title: Graph
+---
+
+Every page is a node; wikilinks are edges. Drag nodes, scroll to zoom,
+click to open a page.
+
+{{< quarto-graph-full >}}

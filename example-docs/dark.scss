@@ -1,0 +1,10 @@
+/*-- scss:defaults --*/
+$primary: #34d399 !default;
+$link-color: #34d399 !default;
+$body-bg: #181a1d !default;
+
+/*-- scss:rules --*/
+#quarto-sidebar,
+.sidebar.sidebar-navigation {
+  background-color: #131416;
+}

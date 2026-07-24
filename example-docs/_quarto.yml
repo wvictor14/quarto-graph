@@ -1,0 +1,17 @@
+project:
+  type: quarto-graph
+
+filters:
+  - quarto-graph
+
+website:
+  title: "quarto-graph docs"
+
+format:
+  html:
+    grid:
+      margin-width: 380px
+    theme:
+      light: [flatly, styles.scss]
+      dark: [darkly, styles.scss, dark.scss]
+    respect-user-color-scheme: true

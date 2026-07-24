@@ -1,0 +1,95 @@
+/* Interactive link graph (theme/graph.js) — extracted from the sonomabio
+ * wiki theme's extra.css. Only the graph-related rules; drop straight into
+ * a Quarto include-in-header/-after-body CSS file. */
+
+.quarto-graph-canvas {
+  display: block;
+  width: 100%;
+  touch-action: none;
+}
+#quarto-graph-full .quarto-graph-canvas {
+  border: 1px solid var(--bs-border-color, rgba(200, 211, 236, 0.8));
+  border-radius: 4px;
+}
+.quarto-graph-panel {
+  margin: 0.6rem 0.8rem 0.4rem;
+  border: 1px solid var(--bs-border-color, rgba(200, 211, 236, 0.8));
+  border-radius: 4px;
+  overflow: hidden;
+}
+.quarto-graph-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.4rem 0.15rem 0.6rem;
+}
+.quarto-graph-panel__title {
+  display: block;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--bs-secondary-color, rgba(26, 26, 26, 0.55));
+}
+.quarto-graph-panel__title:hover {
+  color: #6b0021;
+}
+.quarto-graph-panel__expand {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: 0;
+  padding: 0.15rem;
+  cursor: pointer;
+  color: var(--bs-secondary-color, rgba(26, 26, 26, 0.55));
+}
+.quarto-graph-panel__expand:hover,
+.quarto-graph-panel__expand:focus-visible {
+  color: #6b0021;
+}
+
+/* Enlarged local-graph popup (opened by clicking the sidebar mini graph) */
+.quarto-graph-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(26, 26, 26, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.quarto-graph-modal__box {
+  background: var(--bs-body-bg, #fff);
+  color: var(--bs-body-color, #1a1a1a);
+  width: min(780px, 92vw);
+  border: 1px solid var(--bs-border-color, #c9d3ec);
+  border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(26, 26, 26, 0.25);
+}
+.quarto-graph-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.5rem 0.3rem 0.8rem;
+  border-bottom: 1px solid var(--bs-border-color, rgba(200, 211, 236, 0.6));
+}
+.quarto-graph-modal__title {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  color: var(--bs-secondary-color, rgba(26, 26, 26, 0.65));
+}
+.quarto-graph-modal__close {
+  background: none;
+  border: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  color: var(--bs-secondary-color, rgba(26, 26, 26, 0.55));
+}
+.quarto-graph-modal__close:hover,
+.quarto-graph-modal__close:focus-visible {
+  color: #6b0021;
+}

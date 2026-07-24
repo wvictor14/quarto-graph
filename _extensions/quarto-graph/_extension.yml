@@ -1,0 +1,21 @@
+title: Quarto Graph
+author: sonomabio
+version: 0.1.0
+quarto-required: ">=1.4.0"
+contributes:
+  project:
+    project:
+      type: website
+      pre-render: python3 _extensions/quarto-graph/prerender.py
+      post-render: python3 _extensions/quarto-graph/postrender.py
+    website:
+      sidebar:
+        style: docked
+        contents: auto
+    format:
+      html:
+        toc: true
+  filters:
+    - filter.lua
+  shortcodes:
+    - full-graph.lua

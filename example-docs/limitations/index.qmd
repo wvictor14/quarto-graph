@@ -1,0 +1,36 @@
+---
+title: Limitations
+type: reference
+---
+
+Not currently supported. None of these are structural, just not built
+yet.
+
+## Embeds aren't transcluded
+
+Obsidian's embed syntax (a `!` before the double brackets, embedding
+another note or an image inline) is not specially handled. The wikilink
+pattern matches the bracketed part regardless of a leading `!`, so an
+embed of a real page becomes a broken image tag pointing at that page's
+URL: a page, rendered as if it were an image, which fails to
+load. An embed of a target that doesn't exist is just another unresolved
+wikilink warning, same as [[Wikilinks and Aliases|any other dangling link]].
+
+## Full-path wikilink targets
+
+Only a page's `title:`, its filename stem, and `also-known-as:` resolve.
+A folder-qualified target does not. See [[Wikilinks and Aliases]] for the
+registry mechanics this follows from, and how duplicate names are handled
+instead.
+
+## Inline code spans can trigger a false "unresolved" warning
+
+A real single-backtick code span like `` `[[literal example]]` `` renders
+correctly. It stays as plain code text in the page, not a broken link.
+But the pre-render scan (which builds the backlink graph and prints
+unresolved-wikilink warnings) doesn't yet know to skip inline code spans
+the way it already skips fenced code blocks, so it can print a spurious
+warning for bracket-looking text that was never meant to be a real
+wikilink. Only the warning is wrong; the rendered page is fine. Worth
+knowing if you're running with `--strict`, since a false warning there
+would fail the build.

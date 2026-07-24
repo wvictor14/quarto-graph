@@ -1,0 +1,74 @@
+---
+title: Under the Hood
+type: experiment
+---
+
+Three stages, chained by `quarto render`, each owned by a different
+runtime. None of them ever rewrite your page source:
+
+1. **Pre-render (Python, once per build).** Quarto's `project.pre-render`
+   hook runs a script that scans every page in the project (a full scan
+   every time, ignoring which specific page(s) Quarto happens
+   to be rendering in this particular invocation, since a single-page render
+   still needs to resolve links against every *other* page), parses each
+   page's `title:`, `also-known-as:`, and `type:` frontmatter, and scans
+   its body for double-bracketed wikilinks to build a registry (name →
+   page) and a backlink map (page → pages that link to it). That registry
+   is written to a JSON side-channel file; the page source itself is never
+   touched.
+2. **Render (Pandoc, once per page).** Quarto renders each real `.qmd`
+   normally. A registered Lua filter reads that side-channel registry once
+   and, for this one page's in-memory document only: rewrites
+   wikilinks into real links (see [[Wikilinks and Aliases]]),
+   appends this page's own "## Backlinks" section (see [[Backlinks]]), and
+   records this page's own real output URL to another small side-channel
+   file. The same filter also attaches `graph.js`/`graph.css` via
+   `quarto.doc.add_html_dependency`, which is how they get a correct
+   relative path regardless of how deeply nested the page is.
+3. **Post-render (Python, once per build).** Quarto's `project.post-render`
+   hook runs once every page has rendered, joins the pre-render registry
+   with every page's own recorded real output URL, and writes `graph.json`
+   directly into the output directory.
+
+## Why nothing computes a page's own output URL
+
+A resolved wikilink is just a relative link to the target page's own
+*source* path (e.g. `/getting-started.qmd`). Quarto's own project link
+rewriting turns that into whatever the real final URL is, honoring
+whatever output conventions your project already uses. This project has
+no output-path convention of its own to get wrong, because it never
+computes one. [[The Graph Widget]]'s `graph.json`, read by client-side JS
+that Quarto's own link rewriting can't help with, is the one place a real
+URL is needed, so it's read from `quarto.doc.output_file` after the fact,
+per page, rather than predicted.
+
+## Two ways an extension reaches into a project, and they're not the same
+
+`_extensions/quarto-graph/_extension.yml` contributes two different
+things, and only one applies automatically:
+
+| Contribution | Applies to your `_quarto.yml` | You still have to write |
+|---|---|---|
+| `contributes.project` | automatically, the moment `project: type: quarto-graph` names the extension | nothing |
+| `contributes.filters` | **not automatically** | `filters: [quarto-graph]`, explicitly |
+
+This was confirmed empirically, not just read off the Quarto docs: a
+debug print inside the filter stayed silent on every render until
+`filters: [quarto-graph]` was added to the consuming `_quarto.yml`.
+
+## The Python/Lua duplication seam
+
+The pre-render pass (Python) and the per-page filter (Lua) each parse
+wikilink syntax independently. Python builds the backlink map up
+front, Lua actually rewrites links at render time, because a Lua filter
+can only see the one page it's rendering, not the whole project. That's
+two implementations of the same bracket-syntax grammar, in two languages,
+kept in sync by hand. There's no way around it inside this two-runtime
+architecture; it's a real, permanent seam, not an oversight.
+
+## Strict mode
+
+The pre-render script accepts `--strict`, which turns any unresolved
+wikilink into a build failure instead of just a warning. Add it to the
+`pre-render` line in `_extension.yml` if you want broken links caught in
+CI rather than discovered by a reader.

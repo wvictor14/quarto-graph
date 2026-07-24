@@ -1,0 +1,20 @@
+/*-- scss:defaults --*/
+$web-font-path: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&display=swap" !default;
+$font-family-sans-serif: "IBM Plex Sans", sans-serif !default;
+
+$primary: #10b981 !default;
+$link-color: #10b981 !default;
+
+$h1-font-size: 1.9rem !default;
+$h2-font-size: 1.5rem !default;
+$h3-font-size: 1.25rem !default;
+
+/*-- scss:rules --*/
+@if $web-font-path {
+  @import url($web-font-path);
+}
+
+#quarto-sidebar,
+.sidebar.sidebar-navigation {
+  background-color: #f8f9fa;
+}

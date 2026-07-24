@@ -1,0 +1,106 @@
+---
+title: Wikilinks and Aliases
+type: concept
+---
+
+## Syntax
+
+A wikilink is a page name in double brackets:
+
+`[[Getting Started]]`
+
+Optional pieces can be added:
+
+- **Display text**: `[[Getting Started|the setup guide]]` renders as a link
+  reading "the setup guide".
+- **Heading link**: `[[Getting Started#5. Render]]` links to the
+  `## 5. Render` heading within that page. Combine with display text:
+  `[[Getting Started#5. Render|the render step]]`.
+- **Case insensitivity**: matching against the registry ignores case, so
+  `[[getting STARTED]]` resolves the same as the canonical form.
+
+## How targets resolve to pages
+
+A pre-render pass scans every page in the project once, before any page
+renders, and builds a registry of link targets. Each page contributes:
+
+- its `title:` frontmatter (or filename stem, if no title is set)
+- its bare filename stem, with folder and extension stripped, except the
+  stem `index`, which is skipped, since every page in a slug-folder project
+  would otherwise collide on it
+- each name listed under `also-known-as:` in its frontmatter (a single
+  string or a list of strings)
+
+All of these are lowercased before being stored, which is what makes lookups
+case-insensitive.
+
+Note that `also-known-as:` is a quarto-graph-specific key, distinct from
+Quarto's built-in `aliases:` (which is for redirect URLs, not link
+resolution).
+
+For example, [[Getting Started]] has this frontmatter:
+
+```yaml
+---
+title: Getting Started
+---
+```
+
+which registers it under both `Getting Started` (title) and
+`getting-started` (stem). Adding an `also-known-as:` list would register
+more names for the same page:
+
+```yaml
+---
+title: Getting Started
+also-known-as:
+  - Setup
+  - Installation
+---
+```
+
+After that, `[[Setup]]` and `[[Installation]]` would resolve to this same
+page too.
+
+Full-path targets (a folder name followed by a page name) are not
+supported. Only bare stems and `also-known-as:` names resolve. See
+[[Limitations]] for this and other current gaps (embeds, inline-code-span
+safety).
+
+## What "resolves" actually means
+
+At each page's own render time, a Pandoc Lua filter looks up every
+bracketed wikilink against that registry:
+
+- **Found** → rewritten to a real link, and an edge is recorded for
+  [[The Graph Widget]].
+- **Not found** → left as plain, unlinked text (brackets included), and a
+  warning is printed. Nothing else happens.
+
+That second case is worth being explicit about: **a wikilink to a page
+that doesn't exist does not create that page.** The registry is built once,
+up front, only from pages already in the project. For example, this
+paragraph links to [[This Page Does Not Exist Anywhere]], which isn't a
+real page. It renders as inert text, and the build prints:
+
+```
+WARNING: unresolved wikilink [[This Page Does Not Exist Anywhere]] in wikilinks-and-aliases/index.qmd
+```
+
+To make broken links fail the *build* instead of just warning, pass
+`--strict` to the pre-render script (edit the `pre-render` line in
+`_extensions/quarto-graph/_extension.yml`); see [[Under the Hood]].
+
+## Clashing names
+
+If two pages register the same target name (two files sharing a stem in
+different folders, two pages with the same `also-known-as:`, and so on),
+the registry keeps only the first one registered and prints:
+
+```
+WARNING: duplicate link target 'name' (first-page.qmd vs second-page.qmd); keeping first-page.qmd
+```
+
+A bare wikilink to that name always resolves to whichever page was kept.
+There's no way to disambiguate by folder. Give the other page a unique
+`also-known-as:` name instead.
