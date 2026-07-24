@@ -6,13 +6,13 @@ type: reference
 
 ## Installation
 
-First, install the quarto extension
+Install the quarto extension:
 
-<!--- below is desired installation path, TBD on implementation --->
+```sh
+quarto add quarto-graph
+```
 
-`quarto add quarto-graph`
-
-Then install the python package, which is used to resolve graph data:
+Then install the Python package, which resolves the graph data:
 
 ```sh
 uv add quarto-graph
@@ -20,8 +20,7 @@ uv add quarto-graph
 
 ## Add to `_quarto.yml`
 
-To enable the extension in your quarto website, change the project type to 
-`quarto-graph` and add it to the `filters`:
+Set the project type to `quarto-graph` and add it to `filters`:
 
 ```yaml
 project:
@@ -31,16 +30,12 @@ filters:
   - quarto-graph
 ```
 
-## Using Wikilinks
+## Using wikilinks
 
-This extension enables wikilink syntax, a way to connect internal pages in your 
-project using a `[[`. Wikilinks can be a convenient way to refer to pages 
-without explicitly knowing and reference their file path. The way this works is
-by adding an *alias* to individual pages using the `also-known-as` frontmatter
-key:
+Type `[[Home]]` to link to a page named "Home", without knowing its file path.
 
-For example, if we want to refer to the homepage of our website by "Home", we 
-can write in `/index.qmd`:
+Give a page an alias with the `also-known-as` frontmatter key. For example, in
+`/index.qmd`:
 
 ```markdown
 ---
@@ -49,8 +44,7 @@ also-known-as: Home
 ---
 ```
 
-And then connect it to another page by referencing "Home" with a wikilink in that 
-page. e.g.
+Then link to it from any other page:
 
 *some-other-page/index.qmd*:
 
@@ -58,37 +52,47 @@ page. e.g.
 Go back to [[Home]] using this wikilink
 ```
 
-Additionally, this extension enables regular markdown links to also be 
-connected. For example, these are equivalent:
+Regular markdown links work the same way. These are equivalent:
 
 - `[[Home]]`
 - `[Home](index.qmd)`
 
 See [[Wikilinks and Aliases]] for the full linking syntax.
 
-<!--- should add something about alternative display syntax --->
+### Display text and anchors
+
+Add `|` to show custom link text instead of the target's title:
+
+`[[Home|back home]]`
+
+Link to a heading with `#`:
+
+`[[Home#Installation]]`
+
+Combine both:
+
+`[[Home#Installation|see install steps]]`
 
 ## Graphs in your website
 
-After building connections between pages, you can embed a graph, and you can 
-autogenerating backlinks.
+Once pages are connected, embed a graph and get backlinks automatically.
 
-1. The extension provides a pre-built Graph widget which can be inserted on any 
-page as a shortcode:
+Insert the graph widget as a shortcode:
 
 `{{{< quarto-graph-full >}}}`
 
 {{< quarto-graph-full >}}
 
-See [[The Graph Widget]] for more about the graph widget, how to embed it in 
+Any page with incoming wikilinks or markdown links gets a "Backlinks" section
+appended automatically. No shortcode needed.
+
+See [[The Graph Widget]] for more about the graph widget, how to embed it in
 pages, and how to customize it.
 
 ## Render
 
-<!--- not sure if this section is needed --->
-
-A wikilink resolves live, at render time, against every other page in the
-project. Nothing rewrites your `.qmd` source, ever. 
+The approach this extension takes is to resolve links at render time. Nothing
+rewrites your `.qmd` source files.
 
 ## Frontmatter reference
 
