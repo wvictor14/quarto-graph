@@ -16,6 +16,7 @@ import yaml
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 WIKILINK_RE = re.compile(r"\[\[([^\]\[|#]+)(?:#([^\]\[|]+))?(?:\|([^\]\[]+))?\]\]")
 FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+INLINE_CODE_SPAN_RE = re.compile(r"`[^`\n]+`")
 
 # Side-channel files shared between prerender.py (writer), the Lua filter
 # (reader of REGISTRY_PATH, writer of one file per page under PAGES_DIR),
@@ -75,7 +76,10 @@ def find_wikilinks_outside_fences(text):
     for kind, start_line, region_text in _walk_fences(text):
         if kind != "region":
             continue
+        code_spans = [m.span() for m in INLINE_CODE_SPAN_RE.finditer(region_text)]
         for m in WIKILINK_RE.finditer(region_text):
+            if any(start <= m.start() and m.end() <= end for start, end in code_spans):
+                continue
             line_offset = region_text.count("\n", 0, m.start())
             line_start = region_text.rfind("\n", 0, m.start()) + 1
             col = m.start() - line_start

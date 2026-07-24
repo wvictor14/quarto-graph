@@ -6,6 +6,11 @@ vault-to-website converter: it does not import, transform, or mirror an
 Obsidian vault, does not convert Obsidian callouts, and never writes or
 rewrites files anywhere in the consuming project.
 
+## Prose
+
+When writing documentation, use the skill /prose-style to ensure AI-slop and 
+em dashes don't make it through.
+
 ## Language
 
 **Wikilink**:

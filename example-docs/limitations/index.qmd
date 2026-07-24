@@ -1,6 +1,7 @@
 ---
 title: Limitations
 type: reference
+order: 90
 ---
 
 Not currently supported. None of these are structural, just not built
@@ -23,14 +24,9 @@ A folder-qualified target does not. See [[Wikilinks and Aliases]] for the
 registry mechanics this follows from, and how duplicate names are handled
 instead.
 
-## Inline code spans can trigger a false "unresolved" warning
+## Inline code spans
 
 A real single-backtick code span like `` `[[literal example]]` `` renders
-correctly. It stays as plain code text in the page, not a broken link.
-But the pre-render scan (which builds the backlink graph and prints
-unresolved-wikilink warnings) doesn't yet know to skip inline code spans
-the way it already skips fenced code blocks, so it can print a spurious
-warning for bracket-looking text that was never meant to be a real
-wikilink. Only the warning is wrong; the rendered page is fine. Worth
-knowing if you're running with `--strict`, since a false warning there
-would fail the build.
+correctly. It stays as plain code text in the page, not a broken link, and
+the pre-render scan skips it the same way it skips fenced code blocks, so
+no spurious unresolved-wikilink warning is printed either.

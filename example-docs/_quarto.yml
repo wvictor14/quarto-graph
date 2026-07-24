@@ -6,6 +6,9 @@ filters:
 
 website:
   title: "quarto-graph docs"
+  sidebar:
+    style: "docked"
+    contents: auto
 
 format:
   html:

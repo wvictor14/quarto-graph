@@ -1,6 +1,7 @@
 ---
 title: The Graph Widget
 type: concept
+order: 20
 ---
 
 Two views of the same data, both reading the same `graph.json`:
@@ -8,32 +9,63 @@ Two views of the same data, both reading the same `graph.json`:
 - **Full graph view**: place the `{{{< quarto-graph-full >}}}` shortcode
   on any page you choose (this project puts it on [[Graph]]) to show every
   page as a node and every resolved wikilink as an edge. Drag nodes,
-  scroll to zoom, click a node to open that page. Nothing is
-  auto-generated: if you don't add the shortcode anywhere, there's no
-  full-graph page at all.
+  scroll to zoom, click a node to open that page.
 - **Sidebar mini-panel**: on every page, a small 1-hop subgraph (the
   current page plus everything it directly links to or from) mounts at the
   top of the right-hand TOC sidebar. Clicking it opens a larger modal
   version of the same 1-hop view.
 
 Both are drawn by the same client-side canvas widget
-(`_extensions/quarto-graph/graph.js`). There's no server, no pre-rendered
-image. The browser fetches `graph.json` once per page load and runs a
-small force-directed layout (repulsion between all nodes, springs along
-edges, gentle centering gravity) until it settles, then stops the
-animation loop entirely until you interact with it again.
+(`_extensions/quarto-graph/graph.js`). The browser fetches `graph.json`
+once per page load and runs a force-directed layout (repulsion between all
+nodes, springs along edges, gentle centering gravity) until it settles,
+then stops the animation loop entirely until you interact with it again.
+
+## What graph.json looks like
+
+`graph.json` contains an array of nodes and edges. Here's a minimal example
+with two nodes (Backlinks and The Graph Widget) and one edge between them:
+
+```json
+{
+  "nodes": [
+    {"title": "Backlinks", "type": "concept", "url": "/backlinks/"},
+    {"title": "The Graph Widget", "type": "concept", "url": "/the-graph-widget/"}
+  ],
+  "edges": [[0, 1]]
+}
+```
+
+Edges are pairs of node indices; `[0, 1]` connects the first and second
+nodes. See [[Under the Hood]] for how this gets assembled.
 
 ## Node color
 
-Comes from each page's `type:` frontmatter (see [[Getting Started]]):
-`concept` (teal), `person` (purple), `reference` (orange), `project` (deep
-red), `experiment` (gold), `moc` (slate blue). Anything else, or no `type:`
-at all, falls back to gray.
+Each node's color comes from its page's `type:` frontmatter (see
+[[Getting Started]]). The mapping is:
+
+| Type | Color |
+|------|-------|
+| `concept` | #3ba29f |
+| `person` | #9177b6 |
+| `reference` | #d65527 |
+| `project` | #6b0021 |
+| `experiment` | #c9a227 |
+| `moc` | #8fa6d9 |
+| (none/other) | #9aa0a6 |
 
 ## If the widget doesn't show up
 
-It's built as progressive enhancement. If `graph.json` 404s, or the fetch
-fails for any reason, the widget just does nothing, silently. No error in
-the page itself. Check the browser console and the network tab for
-`graph.json` first; see [[Under the Hood]] for how it's assembled, and
-where that could go missing.
+The widget is built as progressive enhancement: if `graph.json` fails to
+fetch or fails to parse, the widget does nothing silently. No console
+errors, no warning on the page. The browser's fetch call is:
+
+```javascript
+fetch(base + "graph.json")
+```
+
+If it fails (404, network error, JSON parse error), the `.catch` block
+swallows the error by design. Check your browser's Network tab to see
+whether the `graph.json` request succeeded and what it returned. See
+[[Under the Hood]] for how `graph.json` is assembled and where it could
+go missing.

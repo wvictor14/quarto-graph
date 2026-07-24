@@ -23,3 +23,11 @@ To use in your own project: `quarto add` this extension, then add
   pre-generation step
 - [AGENTS.md](AGENTS.md) — terminology and scope boundaries, for anyone
   (human or agent) working on this codebase
+
+
+## next steps
+
+- [ ] treat normal markdown links as nodes in graph (currently are ignored)
+- [ ] publish with GHA
+- [ ] test in another project (evaluate the ux for install, and usage)
+- [ ] optimize graph widget

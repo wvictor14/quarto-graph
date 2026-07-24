@@ -1,5 +1,6 @@
 ---
 title: Graph
+order: 99
 ---
 
 Every page is a node; wikilinks are edges. Drag nodes, scroll to zoom,

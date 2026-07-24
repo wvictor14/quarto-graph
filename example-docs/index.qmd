@@ -3,19 +3,19 @@ title: quarto-graph
 type: moc
 ---
 
-Adds Obsidian-style wikilink functionality — linking, backlinks, and a
-graph visualization — directly to your own Quarto project's pages.
+Adds Obsidian-style wikilink functionality to your own Quarto project's
+pages: linking, backlinks, and a graph visualization.
 
 This site is itself built with quarto-graph, and every page here is a real
-page in this same Quarto project — there's no separate source directory.
+page in this same Quarto project. There's no separate source directory.
 If you can read this page, [[Getting Started]] already resolved as a real
 link below.
 
 ## Start here
 
-- [[Getting Started]] — install it, a few lines in `_quarto.yml`, done
-- [[Wikilinks and Aliases]] — the linking syntax and how targets resolve
-- [[Backlinks]] — the "pages that link here" section, injected live
-- [[The Graph Widget]] — the full graph view and the sidebar mini-panel
-- [[Limitations]] — what's not supported yet
-- [[Under the Hood]] — the resolution pipeline, for when something goes wrong
+- [[Getting Started]]: install it, a few lines in `_quarto.yml`, done
+- [[Wikilinks and Aliases]]: the linking syntax and how targets resolve
+- [[Backlinks]]: the "pages that link here" section, injected live
+- [[The Graph Widget]]: the full graph view and the sidebar mini-panel
+- [[Limitations]]: what's not supported yet
+- [[Under the Hood]]: the resolution pipeline, for when something goes wrong
