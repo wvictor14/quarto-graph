@@ -101,4 +101,4 @@ rewrites your `.qmd` source files.
 | `title:` | Page title, and the link text shown when a wikilink has no `\|display` override |
 | `type:` | Colors the node in the graph widget: `concept`, `person`, `reference`, `project`, `experiment`, `moc`; anything else (or omitted) falls back to gray |
 | `also-known-as:` | Extra names this page's wikilinks can be reached by, on top of its filename. A separate key from Quarto's own `aliases:`; see [[Wikilinks and Aliases]] for why |
-| `quarto-graph:` | Per-page override of the sidebar mini-panel (`sidebar: true/false`); see [[The Graph Widget]] |
+| `quarto-graph:` | Per-page override of the sidebar mini-panel (`sidebar: true/false`, or `sidebar: {enabled, depth}`); see [[The Graph Widget]] |
