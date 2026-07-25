@@ -190,6 +190,7 @@ def _coerce_depth(value, fallback):
     try:
         return max(1, int(value))
     except (TypeError, ValueError):
+        print("WARNING: bad depth value {!r}, falling back to {}".format(value, fallback), file=sys.stderr)
         return fallback
 
 

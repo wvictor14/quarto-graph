@@ -11,7 +11,7 @@ Two views of the same data, both reading the same `graph.json`:
   page as a node and every resolved wikilink, or plain Markdown link
   between two project pages, as an edge. Drag nodes, scroll to zoom, click
   a node to open that page. Multiple instances on one page are fine, each
-  with its own params — see [Customizing the full graph widget](#customizing-the-full-graph-widget).
+  with its own params. See [Customizing the full graph widget](#customizing-the-full-graph-widget).
 - **Sidebar mini-panel**: on every page, a small N-hop subgraph (the
   current page plus everything within N links of it; 1-hop by default)
   mounts at the top of the right-hand TOC sidebar. Clicking it opens a
@@ -74,7 +74,7 @@ Each node's color comes from its page's `type:` frontmatter (see
 {{{< quarto-graph-full root="Getting Started" depth="2" >}}}
 ```
 
-Each `{{{< quarto-graph-full >}}}` call is independent — there's no
+Each `{{{< quarto-graph-full >}}}` call is independent. There's no
 project-wide default for any of these, unlike the sidebar mini-panel below.
 A `root` that doesn't match any page logs a warning at render time and that
 particular widget renders nothing, rather than silently falling back to the
@@ -83,8 +83,8 @@ whole graph.
 ## Configuring the sidebar mini-panel
 
 The full graph view is always opt-in, placed by the `{{{< quarto-graph-full >}}}`
-shortcode. The sidebar mini-panel is on by default everywhere else — 1-hop
-from the current page — but both whether it shows and how many hops it
+shortcode. The sidebar mini-panel is on by default everywhere else, 1-hop
+from the current page, but both whether it shows and how many hops it
 reaches can be changed, globally or per page.
 
 Global default, in `_quarto.yml`:
@@ -103,7 +103,7 @@ quarto-graph:
     depth: 2
 ```
 
-Per-page override, same key, in that page's own frontmatter — either the
+Per-page override, same key, in that page's own frontmatter, either the
 bare bool or the `{enabled, depth}` form:
 
 ```yaml

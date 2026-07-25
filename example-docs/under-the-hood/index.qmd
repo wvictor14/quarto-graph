@@ -19,7 +19,7 @@ runtime. None of them ever rewrite your page source:
    for a project-wide `quarto-graph:` default — a new read source; earlier
    versions of this pass never opened `_quarto.yml` at all — and folds
    that with each page's own `quarto-graph:` override into a per-page
-   `sidebar` config (`{enabled, depth}`, field-level merge — see
+   `sidebar` config (`{enabled, depth}`, field-level merge, see
    [[The Graph Widget]]). That registry is written to a JSON side-channel
    file. The page source itself is never touched.
 2. **Render (Pandoc, once per page).** Quarto renders each real `.qmd`
@@ -32,7 +32,7 @@ runtime. None of them ever rewrite your page source:
    `enabled: false`, the filter stamps
    `<meta name="quarto-graph-sidebar" content="false">` into this page's
    `<head>`; if it's enabled with a `depth` other than the default of 1, it
-   instead stamps `<meta name="quarto-graph-sidebar-depth" content="N">` —
+   instead stamps `<meta name="quarto-graph-sidebar-depth" content="N">`,
    a per-page fact, injected the same way as backlinks, not routed through
    `graph.json` (see [[The Graph Widget]]). The same filter
    also attaches `graph.js`/`graph.css` via `quarto.doc.add_html_dependency`,

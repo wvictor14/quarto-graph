@@ -107,16 +107,22 @@
   // Generalizes the mini-panel's original 1-hop-only subgraph build to N
   // hops: BFS out from startIdx, keeping every node reached within `depth`
   // edges, remapped to a dense 0..k index space the way initGraph expects.
+  // Adjacency list built once per call so each BFS level is O(frontier
+  // degree) instead of rescanning every edge in data.edges.
   function bfsSubgraph(data, startIdx, depth) {
+    var adj = {};
+    data.edges.forEach(function (e) {
+      (adj[e[0]] || (adj[e[0]] = [])).push(e[1]);
+      (adj[e[1]] || (adj[e[1]] = [])).push(e[0]);
+    });
     var keep = {};
     keep[startIdx] = true;
     var frontier = [startIdx];
     for (var d = 0; d < depth && frontier.length; d++) {
       var next = [];
-      data.edges.forEach(function (e) {
-        frontier.forEach(function (idx) {
-          if (e[0] === idx && !keep[e[1]]) { keep[e[1]] = true; next.push(e[1]); }
-          if (e[1] === idx && !keep[e[0]]) { keep[e[0]] = true; next.push(e[0]); }
+      frontier.forEach(function (idx) {
+        (adj[idx] || []).forEach(function (n) {
+          if (!keep[n]) { keep[n] = true; next.push(n); }
         });
       });
       frontier = next;
@@ -133,6 +139,21 @@
       },
       focus: remap[startIdx],
     };
+  }
+
+  // Shared by mountFullGraph's fullscreen toggle and mountLocalPanel's
+  // expand button: same expand-arrows icon, same aria-label/title/click
+  // shape, only the className and click handler differ per caller.
+  function makeExpandButton(className, label, onClick) {
+    var btn = document.createElement("button");
+    btn.className = className;
+    btn.type = "button";
+    btn.setAttribute("aria-label", label);
+    btn.title = label;
+    btn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
+    btn.addEventListener("click", onClick);
+    return btn;
   }
 
   // Mounts a single {{< quarto-graph-full >}} instance per its own data-*
@@ -170,17 +191,9 @@
     initGraph(el, graphData, { height: height, focus: focus });
 
     if (ds.expandable === "true") {
-      var expand = document.createElement("button");
-      expand.className = "quarto-graph-full__expand";
-      expand.type = "button";
-      expand.setAttribute("aria-label", "Expand graph to fullscreen");
-      expand.title = "Expand to fullscreen";
-      expand.innerHTML =
-        '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
-      expand.addEventListener("click", function () {
+      el.appendChild(makeExpandButton("quarto-graph-full__expand", "Expand graph to fullscreen", function () {
         openGraphModal(graphData, focus, label, { big: true });
-      });
-      el.appendChild(expand);
+      }));
     }
   }
 
@@ -213,14 +226,7 @@
     title.textContent = "Graph";
     title.href = new URL(data.graphUrl || "graph.html", base).href;
     title.title = "Open the full graph";
-    var expand = document.createElement("button");
-    expand.className = "quarto-graph-panel__expand";
-    expand.type = "button";
-    expand.setAttribute("aria-label", "Expand local graph");
-    expand.title = "Expand local graph";
-    expand.innerHTML =
-      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
-    expand.addEventListener("click", function () {
+    var expand = makeExpandButton("quarto-graph-panel__expand", "Expand local graph", function () {
       openGraphModal(sub.data, sub.focus, "Local graph · " + data.nodes[cur].title);
     });
     head.appendChild(title);
