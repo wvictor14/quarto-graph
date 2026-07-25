@@ -181,6 +181,11 @@ function Pandoc(doc)
   end
 
   local rel = project_rel(quarto.doc.input_file, project_dir)
+  local page = reg.pages[rel]
+  if page ~= nil and page.sidebar == false then
+    quarto.doc.include_text("in-header", '<meta name="quarto-graph-sidebar" content="false">')
+  end
+
   local backlinks = reg.backlinks[rel]
   if backlinks ~= nil and #backlinks > 0 then
     local items = pandoc.List({})

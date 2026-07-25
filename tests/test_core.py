@@ -6,7 +6,9 @@ from quarto_graph.core import (
     build_registry,
     find_wikilinks_outside_fences,
     normalize_ws,
+    page_sidebar_enabled,
     parse_page,
+    read_project_config,
     resolve_markdown_href,
 )
 
@@ -64,6 +66,52 @@ def test_parse_page_reads_type(tmp_path):
     f.write_text("---\ntype: Concept\n---\nbody\n", encoding="utf-8")
     page = parse_page(f, tmp_path)
     assert page["type"] == "concept"
+
+
+# --- read_project_config -----------------------------------------------------
+
+def test_read_project_config_missing_file_defaults_true(tmp_path):
+    assert read_project_config(tmp_path) == {"sidebar": True}
+
+
+def test_read_project_config_reads_sidebar_false(tmp_path):
+    (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar: false\n", encoding="utf-8")
+    assert read_project_config(tmp_path) == {"sidebar": False}
+
+
+def test_read_project_config_no_quarto_graph_key_defaults_true(tmp_path):
+    (tmp_path / "_quarto.yml").write_text("project:\n  type: website\n", encoding="utf-8")
+    assert read_project_config(tmp_path) == {"sidebar": True}
+
+
+def test_read_project_config_bad_yaml_warns_and_defaults(tmp_path, capsys):
+    (tmp_path / "_quarto.yml").write_text("key: [unterminated\n", encoding="utf-8")
+    assert read_project_config(tmp_path) == {"sidebar": True}
+    assert "WARNING: bad YAML" in capsys.readouterr().err
+
+
+# --- page_sidebar_enabled -----------------------------------------------------
+
+def _page_with_meta(meta):
+    return {"meta": meta}
+
+
+def test_page_sidebar_enabled_falls_back_to_project_default_true():
+    assert page_sidebar_enabled(_page_with_meta({}), {"sidebar": True}) is True
+
+
+def test_page_sidebar_enabled_falls_back_to_project_default_false():
+    assert page_sidebar_enabled(_page_with_meta({}), {"sidebar": False}) is False
+
+
+def test_page_sidebar_enabled_page_overrides_project_true_to_false():
+    page = _page_with_meta({"quarto-graph": {"sidebar": False}})
+    assert page_sidebar_enabled(page, {"sidebar": True}) is False
+
+
+def test_page_sidebar_enabled_page_overrides_project_false_to_true():
+    page = _page_with_meta({"quarto-graph": {"sidebar": True}})
+    assert page_sidebar_enabled(page, {"sidebar": False}) is True
 
 
 # --- build_registry -----------------------------------------------------------

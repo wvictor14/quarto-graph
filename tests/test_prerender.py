@@ -59,6 +59,21 @@ def test_run_prerender_quiet_still_raises_on_strict(project, monkeypatch):
         run_prerender(project, strict=True)
 
 
+def test_run_prerender_defaults_sidebar_true_with_no_quarto_yml(project):
+    payload = run_prerender(project)
+    assert payload["pages"]["Home.md"]["sidebar"] is True
+    assert payload["pages"]["Other Page.md"]["sidebar"] is True
+
+
+def test_run_prerender_sidebar_config(tmp_path):
+    _write(tmp_path, "_quarto.yml", "quarto-graph:\n  sidebar: false\n")
+    _write(tmp_path, "Home.md", "content\n")
+    _write(tmp_path, "Other Page.md", "---\nquarto-graph:\n  sidebar: true\n---\ncontent\n")
+    payload = run_prerender(tmp_path)
+    assert payload["pages"]["Home.md"]["sidebar"] is False
+    assert payload["pages"]["Other Page.md"]["sidebar"] is True
+
+
 def test_run_prerender_scans_whole_project_regardless_of_a_partial_render(project):
     # Confirmed empirically: QUARTO_PROJECT_INPUT_FILES lists only the
     # file(s) in *this* render invocation -- empty on a `quarto preview`

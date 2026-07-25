@@ -63,11 +63,18 @@
   }
 
   ready(function () {
+    var full = document.getElementById("quarto-graph-full");
+    // The Lua filter stamps this meta tag only on pages with the sidebar
+    // panel turned off (see filter.lua). Checked before the fetch, not
+    // after, so a disabled page skips downloading and parsing graph.json
+    // entirely instead of throwing the work away once it's already here.
+    if (!full && document.querySelector('meta[name="quarto-graph-sidebar"][content="false"]')) {
+      return;
+    }
     fetch(base + "graph.json")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !data.nodes || !data.nodes.length) return;
-        var full = document.getElementById("quarto-graph-full");
         if (full) {
           initGraph(full, data, {
             height: Math.max(420, Math.round(window.innerHeight * 0.65)),
