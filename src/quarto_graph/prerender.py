@@ -17,7 +17,9 @@ from .core import (
     build_backlinks,
     build_registry,
     discover_paths,
+    page_sidebar_enabled,
     parse_page,
+    read_project_config,
 )
 
 
@@ -44,10 +46,15 @@ def run_prerender(project_root, strict=False):
     pages = [parse_page(p, project_root) for p in discover_paths(project_root)]
     registry = build_registry(pages)
     backlinks, unresolved = build_backlinks(pages, registry)
+    project_config = read_project_config(project_root)
 
     payload = {
         "pages": {
-            str(p["rel"]): {"title": p["title"], "type": p["type"]}
+            str(p["rel"]): {
+                "title": p["title"],
+                "type": p["type"],
+                "sidebar": page_sidebar_enabled(p, project_config),
+            }
             for p in pages
         },
         "registry": {name: str(page["rel"]) for name, page in registry.items()},

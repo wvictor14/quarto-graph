@@ -182,6 +182,39 @@ def parse_page(path, project_root):
     }
 
 
+def read_project_config(project_root):
+    """Load the project-wide `quarto-graph:` mapping from `_quarto.yml` (or
+    `_quarto.yaml`) at project_root, returning {"sidebar": bool} -- the
+    global default for the sidebar mini-panel, `True` unless the project
+    explicitly opts out. Missing file or bad YAML both fall back to the
+    default (bad YAML warns to stderr, same as parse_page's own frontmatter
+    handling)."""
+    project_root = Path(project_root)
+    config_path = project_root / "_quarto.yml"
+    if not config_path.exists():
+        config_path = project_root / "_quarto.yaml"
+    if not config_path.exists():
+        return {"sidebar": True}
+    try:
+        doc = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        print("WARNING: bad YAML in {}: {}".format(config_path, exc), file=sys.stderr)
+        return {"sidebar": True}
+    quarto_graph = doc.get("quarto-graph") if isinstance(doc, dict) else None
+    quarto_graph = quarto_graph if isinstance(quarto_graph, dict) else {}
+    return {"sidebar": bool(quarto_graph.get("sidebar", True))}
+
+
+def page_sidebar_enabled(page, project_config):
+    """Whether the sidebar mini-panel should mount on this page: the page's
+    own `quarto-graph: sidebar:` frontmatter wins if present, else the
+    project-wide default from read_project_config."""
+    page_config = page["meta"].get("quarto-graph")
+    if isinstance(page_config, dict) and "sidebar" in page_config:
+        return bool(page_config["sidebar"])
+    return project_config["sidebar"]
+
+
 def build_registry(pages):
     """Map every name a wikilink can target (case-insensitive) -> page: each
     page's own `title:` (its most reliable human-typed name — a real
