@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "quarto-graph"
-version = "0.1.0"
+version = "0.1.1"
 description = "Obsidian-wikilink resolver shared by the quarto-graph Quarto extension and editor tooling"
 requires-python = ">=3.9"
 dependencies = ["PyYAML>=6"]
