@@ -6,5 +6,13 @@ obsidian
 
 quartz
 
+- [Wikilinks](https://quartz.jzhao.xyz/features/wikilinks)
+
+Differences to our implementation
+
+- embeds
+
+- [Customization](https://quartz.jzhao.xyz/plugins/crawllinks)
+
 foam
 
