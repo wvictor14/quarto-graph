@@ -7,9 +7,29 @@
   width: 100%;
   touch-action: none;
 }
-#quarto-graph-full .quarto-graph-canvas {
+.quarto-graph-full {
+  position: relative;
+}
+.quarto-graph-full .quarto-graph-canvas {
   border: 1px solid var(--bs-border-color, rgba(200, 211, 236, 0.8));
   border-radius: 4px;
+}
+.quarto-graph-full__expand {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  background: var(--bs-body-bg, #fff);
+  border: 1px solid var(--bs-border-color, rgba(200, 211, 236, 0.8));
+  border-radius: 4px;
+  padding: 0.3rem;
+  cursor: pointer;
+  color: var(--bs-secondary-color, rgba(26, 26, 26, 0.55));
+}
+.quarto-graph-full__expand:hover,
+.quarto-graph-full__expand:focus-visible {
+  color: #6b0021;
 }
 .quarto-graph-panel {
   margin: 0.6rem 0.8rem 0.4rem;
@@ -65,6 +85,9 @@
   border: 1px solid var(--bs-border-color, #c9d3ec);
   border-radius: 6px;
   box-shadow: 0 12px 40px rgba(26, 26, 26, 0.25);
+}
+.quarto-graph-modal__box--full {
+  width: 96vw;
 }
 .quarto-graph-modal__head {
   display: flex;
