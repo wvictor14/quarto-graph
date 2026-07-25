@@ -17,7 +17,7 @@ from .core import (
     build_backlinks,
     build_registry,
     discover_paths,
-    page_sidebar_enabled,
+    page_sidebar_config,
     parse_page,
     read_project_config,
 )
@@ -53,7 +53,7 @@ def run_prerender(project_root, strict=False):
             str(p["rel"]): {
                 "title": p["title"],
                 "type": p["type"],
-                "sidebar": page_sidebar_enabled(p, project_config),
+                "sidebar": page_sidebar_config(p, project_config),
             }
             for p in pages
         },

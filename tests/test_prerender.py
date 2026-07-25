@@ -61,8 +61,8 @@ def test_run_prerender_quiet_still_raises_on_strict(project, monkeypatch):
 
 def test_run_prerender_defaults_sidebar_true_with_no_quarto_yml(project):
     payload = run_prerender(project)
-    assert payload["pages"]["Home.md"]["sidebar"] is True
-    assert payload["pages"]["Other Page.md"]["sidebar"] is True
+    assert payload["pages"]["Home.md"]["sidebar"] == {"enabled": True, "depth": 1}
+    assert payload["pages"]["Other Page.md"]["sidebar"] == {"enabled": True, "depth": 1}
 
 
 def test_run_prerender_sidebar_config(tmp_path):
@@ -70,8 +70,15 @@ def test_run_prerender_sidebar_config(tmp_path):
     _write(tmp_path, "Home.md", "content\n")
     _write(tmp_path, "Other Page.md", "---\nquarto-graph:\n  sidebar: true\n---\ncontent\n")
     payload = run_prerender(tmp_path)
-    assert payload["pages"]["Home.md"]["sidebar"] is False
-    assert payload["pages"]["Other Page.md"]["sidebar"] is True
+    assert payload["pages"]["Home.md"]["sidebar"] == {"enabled": False, "depth": 1}
+    assert payload["pages"]["Other Page.md"]["sidebar"] == {"enabled": True, "depth": 1}
+
+
+def test_run_prerender_sidebar_depth_override(tmp_path):
+    _write(tmp_path, "_quarto.yml", "quarto-graph:\n  sidebar:\n    depth: 2\n")
+    _write(tmp_path, "Home.md", "---\nquarto-graph:\n  sidebar:\n    depth: 3\n---\ncontent\n")
+    payload = run_prerender(tmp_path)
+    assert payload["pages"]["Home.md"]["sidebar"] == {"enabled": True, "depth": 3}
 
 
 def test_run_prerender_scans_whole_project_regardless_of_a_partial_render(project):
