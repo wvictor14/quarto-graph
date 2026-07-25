@@ -4,6 +4,9 @@ project:
 filters:
   - quarto-graph
 
+quarto-graph:
+  sidebar: true   # default. Per-page override: `quarto-graph: sidebar: false`.
+
 website:
   title: "quarto-graph docs"
   sidebar:
