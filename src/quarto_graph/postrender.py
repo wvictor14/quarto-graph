@@ -28,6 +28,7 @@ def run_postrender(project_root, output_dir):
     index = {rel: i for i, rel in enumerate(rels)}
     nodes = [
         {
+            "rel": rel,
             "title": registry["pages"][rel]["title"],
             "type": registry["pages"][rel]["type"],
             "url": output_urls.get(rel, ""),

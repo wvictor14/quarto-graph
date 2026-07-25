@@ -26,19 +26,16 @@ local function load_registry()
   return registry
 end
 
--- Resolves a root= kwarg to its target page's title (the identity
--- graph.json's own nodes carry): first as a wikilink-style name
--- (title/alias/filename-stem, case-insensitive, via the same registry
--- [[wikilinks]] use -- see filter.lua's resolve_wikilink), falling back to
--- a literal rel source path. Returns nil if neither matches.
+-- Resolves a root= kwarg to its target page's rel path (the identity
+-- graph.json's own nodes carry, unlike title, which two pages can share):
+-- first as a wikilink-style name (title/alias/filename-stem,
+-- case-insensitive, via the same registry [[wikilinks]] use -- see
+-- filter.lua's resolve_wikilink), falling back to a literal rel source
+-- path. Returns nil if neither matches.
 local function resolve_root(name, reg)
   local key = name:lower():gsub("%s+", " "):match("^%s*(.-)%s*$")
   local hit_rel = reg.registry[key] or (reg.pages[name] ~= nil and name or nil)
-  if hit_rel == nil then
-    return nil
-  end
-  local page = reg.pages[hit_rel]
-  return page and page.title or nil
+  return hit_rel
 end
 
 local function escape_attr(s)
@@ -86,18 +83,18 @@ return {
 
     if kw["depth"] then
       local depth = math.max(1, math.floor(tonumber(kw["depth"]) or 1))
-      local root_title = nil
+      local root_rel = nil
       if kw["root"] then
         local reg = load_registry()
-        root_title = reg and resolve_root(kw["root"], reg)
-        if root_title == nil then
+        root_rel = reg and resolve_root(kw["root"], reg)
+        if root_rel == nil then
           quarto.log.warning("quarto-graph-full: unresolved root '" .. kw["root"] .. "'; widget not rendered")
           return pandoc.List({})
         end
       end
       table.insert(attrs, { "data-depth", tostring(depth) })
-      if root_title ~= nil then
-        table.insert(attrs, { "data-root", root_title })
+      if root_rel ~= nil then
+        table.insert(attrs, { "data-root", root_rel })
       end
     end
 

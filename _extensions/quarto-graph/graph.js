@@ -97,9 +97,9 @@
     return -1;
   }
 
-  function findByTitle(data, title) {
+  function findByRel(data, rel) {
     for (var i = 0; i < data.nodes.length; i++) {
-      if (data.nodes[i].title === title) return i;
+      if (data.nodes[i].rel === rel) return i;
     }
     return -1;
   }
@@ -178,7 +178,7 @@
     var label = "Graph";
     if (ds.depth) {
       var depth = Math.max(1, parseInt(ds.depth, 10) || 1);
-      var center = ds.root ? findByTitle(data, ds.root) : findCurrent(data);
+      var center = ds.root ? findByRel(data, ds.root) : findCurrent(data);
       if (center === -1) return; // resolved root/current page isn't a graph node: nothing to show
       var sub = bfsSubgraph(data, center, depth);
       graphData = sub.data;
