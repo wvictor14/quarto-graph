@@ -7,7 +7,7 @@ order: 20
 Two views of the same data, both reading the same `graph.json`:
 
 - **Full graph view**: place the `{{{< quarto-graph-full >}}}` shortcode
-  on any page you choose (this project puts it on [[Graph]]) to show every
+  on any page you choose (this project puts it on [[Graph]] (`[[Graph]]`)) to show every
   page as a node and every resolved wikilink, or plain Markdown link
   between two project pages, as an edge. Drag nodes, scroll to zoom, click
   a node to open that page.
@@ -54,6 +54,40 @@ Each node's color comes from its page's `type:` frontmatter (see
 | `experiment` | #c9a227 |
 | `moc` | #8fa6d9 |
 | (none/other) | #9aa0a6 |
+
+## Configuring the sidebar mini-panel
+
+The full graph view is always opt-in, placed by the `{{{< quarto-graph-full >}}}`
+shortcode. The sidebar mini-panel is on by default everywhere else, but it
+can be turned off, globally or per page.
+
+Global default, in `_quarto.yml`:
+
+```yaml
+quarto-graph:
+  sidebar: true   # default
+```
+
+Per-page override, same key, in that page's own frontmatter:
+
+```yaml
+---
+title: My Page
+quarto-graph:
+  sidebar: false
+---
+```
+
+| `_quarto.yml` `sidebar` | page `sidebar` | mini-panel shows? |
+|---|---|---|
+| `true` (default) | unset | yes |
+| `true` | `false` | no |
+| `false` | unset | no |
+| `false` | `true` | yes |
+
+A page with the panel turned off skips fetching `graph.json` entirely, not
+just skips drawing it — see [[Under the Hood]]. The full graph view is
+unaffected either way, since it isn't governed by this key at all.
 
 ## If the widget doesn't show up
 
