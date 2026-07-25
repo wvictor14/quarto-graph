@@ -1,5 +1,7 @@
 from pathlib import Path, PurePosixPath
 
+import pytest
+
 from quarto_graph.core import (
     anchor_slug,
     build_backlinks,
@@ -113,6 +115,26 @@ def test_read_project_config_bad_yaml_warns_and_defaults(tmp_path, capsys):
 
 def _page_with_meta(meta):
     return {"meta": meta}
+
+
+# The-graph-widget doc's "mini-panel shows?" table, 1:1 -- each row here is
+# that table's row, project sidebar -> page sidebar -> resolved config
+# (enabled implies "shows", not enabled implies "no").
+@pytest.mark.parametrize(
+    "project_sidebar, page_sidebar, expected",
+    [
+        pytest.param({"enabled": True, "depth": 1}, None, {"enabled": True, "depth": 1}, id="true-unset-yes-depth-1"),
+        pytest.param({"enabled": True, "depth": 1}, False, {"enabled": False, "depth": 1}, id="true-false-no"),
+        pytest.param({"enabled": False, "depth": 1}, None, {"enabled": False, "depth": 1}, id="false-unset-no"),
+        pytest.param({"enabled": False, "depth": 1}, True, {"enabled": True, "depth": 1}, id="false-true-yes-depth-1"),
+        pytest.param(
+            {"enabled": True, "depth": 2}, {"depth": 3}, {"enabled": True, "depth": 3}, id="depth-2-depth-3-yes-depth-3"
+        ),
+    ],
+)
+def test_page_sidebar_config_docs_table(project_sidebar, page_sidebar, expected):
+    page_meta = {} if page_sidebar is None else {"quarto-graph": {"sidebar": page_sidebar}}
+    assert page_sidebar_config(_page_with_meta(page_meta), {"sidebar": project_sidebar}) == expected
 
 
 def test_page_sidebar_config_falls_back_to_project_default_true():

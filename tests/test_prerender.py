@@ -74,6 +74,13 @@ def test_run_prerender_sidebar_config(tmp_path):
     assert payload["pages"]["Other Page.md"]["sidebar"] == {"enabled": True, "depth": 1}
 
 
+def test_run_prerender_sidebar_config_page_overrides_project_true_to_false(tmp_path):
+    _write(tmp_path, "_quarto.yml", "quarto-graph:\n  sidebar: true\n")
+    _write(tmp_path, "Home.md", "---\nquarto-graph:\n  sidebar: false\n---\ncontent\n")
+    payload = run_prerender(tmp_path)
+    assert payload["pages"]["Home.md"]["sidebar"] == {"enabled": False, "depth": 1}
+
+
 def test_run_prerender_sidebar_depth_override(tmp_path):
     _write(tmp_path, "_quarto.yml", "quarto-graph:\n  sidebar:\n    depth: 2\n")
     _write(tmp_path, "Home.md", "---\nquarto-graph:\n  sidebar:\n    depth: 3\n---\ncontent\n")
