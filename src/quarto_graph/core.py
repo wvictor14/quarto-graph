@@ -182,37 +182,73 @@ def parse_page(path, project_root):
     }
 
 
+DEFAULT_SIDEBAR_DEPTH = 1
+DEFAULT_SIDEBAR_CONFIG = {"enabled": True, "depth": DEFAULT_SIDEBAR_DEPTH}
+
+
+def _coerce_depth(value, fallback):
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        print("WARNING: bad depth value {!r}, falling back to {}".format(value, fallback), file=sys.stderr)
+        return fallback
+
+
+def _coerce_sidebar_config(value):
+    """Normalizes a raw `sidebar:` value -- the bare bool shorthand or an
+    `{enabled, depth}` mapping -- to a plain {"enabled": bool, "depth": int}
+    dict. depth floors at 1 (see CONTEXT.md's Depth entry); anything
+    unparseable falls back to DEFAULT_SIDEBAR_DEPTH."""
+    if isinstance(value, dict):
+        return {
+            "enabled": bool(value.get("enabled", True)),
+            "depth": _coerce_depth(value.get("depth", DEFAULT_SIDEBAR_DEPTH), DEFAULT_SIDEBAR_DEPTH),
+        }
+    return {"enabled": bool(value), "depth": DEFAULT_SIDEBAR_DEPTH}
+
+
 def read_project_config(project_root):
     """Load the project-wide `quarto-graph:` mapping from `_quarto.yml` (or
-    `_quarto.yaml`) at project_root, returning {"sidebar": bool} -- the
-    global default for the sidebar mini-panel, `True` unless the project
-    explicitly opts out. Missing file or bad YAML both fall back to the
-    default (bad YAML warns to stderr, same as parse_page's own frontmatter
-    handling)."""
+    `_quarto.yaml`) at project_root, returning {"sidebar": {"enabled": bool,
+    "depth": int}} -- the global default for the sidebar mini-panel.
+    Missing file, bad YAML, or a missing `sidebar:` key all fall back to
+    DEFAULT_SIDEBAR_CONFIG (bad YAML also warns to stderr, same as
+    parse_page's own frontmatter handling)."""
     project_root = Path(project_root)
     config_path = project_root / "_quarto.yml"
     if not config_path.exists():
         config_path = project_root / "_quarto.yaml"
     if not config_path.exists():
-        return {"sidebar": True}
+        return {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG)}
     try:
         doc = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
     except yaml.YAMLError as exc:
         print("WARNING: bad YAML in {}: {}".format(config_path, exc), file=sys.stderr)
-        return {"sidebar": True}
+        return {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG)}
     quarto_graph = doc.get("quarto-graph") if isinstance(doc, dict) else None
     quarto_graph = quarto_graph if isinstance(quarto_graph, dict) else {}
-    return {"sidebar": bool(quarto_graph.get("sidebar", True))}
+    if "sidebar" not in quarto_graph:
+        return {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG)}
+    return {"sidebar": _coerce_sidebar_config(quarto_graph["sidebar"])}
 
 
-def page_sidebar_enabled(page, project_config):
-    """Whether the sidebar mini-panel should mount on this page: the page's
-    own `quarto-graph: sidebar:` frontmatter wins if present, else the
-    project-wide default from read_project_config."""
+def page_sidebar_config(page, project_config):
+    """Resolved {"enabled": bool, "depth": int} sidebar config for this
+    page. Each field resolves independently: the page's own `quarto-graph:
+    sidebar:` frontmatter overrides only the fields it actually sets (a
+    page setting just `depth:` keeps the project's `enabled`, and vice
+    versa) -- see CONTEXT.md's Sidebar config entry."""
+    project_sidebar = project_config["sidebar"]
     page_config = page["meta"].get("quarto-graph")
-    if isinstance(page_config, dict) and "sidebar" in page_config:
-        return bool(page_config["sidebar"])
-    return project_config["sidebar"]
+    if not (isinstance(page_config, dict) and "sidebar" in page_config):
+        return project_sidebar
+    raw = page_config["sidebar"]
+    if not isinstance(raw, dict):
+        return {"enabled": bool(raw), "depth": project_sidebar["depth"]}
+    return {
+        "enabled": bool(raw["enabled"]) if "enabled" in raw else project_sidebar["enabled"],
+        "depth": _coerce_depth(raw["depth"], project_sidebar["depth"]) if "depth" in raw else project_sidebar["depth"],
+    }
 
 
 def build_registry(pages):

@@ -19,19 +19,22 @@ runtime. None of them ever rewrite your page source:
    for a project-wide `quarto-graph:` default — a new read source; earlier
    versions of this pass never opened `_quarto.yml` at all — and folds
    that with each page's own `quarto-graph:` override into a per-page
-   `sidebar` boolean (see [[The Graph Widget]]). That registry is written
-   to a JSON side-channel file. The page source itself is never touched.
+   `sidebar` config (`{enabled, depth}`, field-level merge, see
+   [[The Graph Widget]]). That registry is written to a JSON side-channel
+   file. The page source itself is never touched.
 2. **Render (Pandoc, once per page).** Quarto renders each real `.qmd`
    normally. A registered Lua filter reads that side-channel registry once
    and, for this one page's in-memory document only: rewrites
    wikilinks into real links (see [[Wikilinks and Aliases]]),
    appends this page's own "## Backlinks" section (see [[Backlinks]]), and
    records this page's own real output URL to another small side-channel
-   file. If this page's own resolved `sidebar` value (from the registry) is
-   `false`, the filter also stamps
+   file. If this page's own resolved sidebar config (from the registry) has
+   `enabled: false`, the filter stamps
    `<meta name="quarto-graph-sidebar" content="false">` into this page's
-   `<head>` — a per-page fact, injected the same way as backlinks, not
-   routed through `graph.json` (see [[The Graph Widget]]). The same filter
+   `<head>`; if it's enabled with a `depth` other than the default of 1, it
+   instead stamps `<meta name="quarto-graph-sidebar-depth" content="N">`,
+   a per-page fact, injected the same way as backlinks, not routed through
+   `graph.json` (see [[The Graph Widget]]). The same filter
    also attaches `graph.js`/`graph.css` via `quarto.doc.add_html_dependency`,
    which is how they get a correct relative path regardless of how deeply
    nested the page is.

@@ -57,4 +57,4 @@ def test_run_postrender_missing_output_url_defaults_empty(tmp_path):
     out_dir.mkdir()
     payload = run_postrender(tmp_path, out_dir)
 
-    assert payload["nodes"] == [{"title": "Home", "type": "", "url": ""}]
+    assert payload["nodes"] == [{"rel": "Home.md", "title": "Home", "type": "", "url": ""}]

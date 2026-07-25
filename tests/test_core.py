@@ -1,12 +1,14 @@
 from pathlib import Path, PurePosixPath
 
+import pytest
+
 from quarto_graph.core import (
     anchor_slug,
     build_backlinks,
     build_registry,
     find_wikilinks_outside_fences,
     normalize_ws,
-    page_sidebar_enabled,
+    page_sidebar_config,
     parse_page,
     read_project_config,
     resolve_markdown_href,
@@ -71,47 +73,104 @@ def test_parse_page_reads_type(tmp_path):
 # --- read_project_config -----------------------------------------------------
 
 def test_read_project_config_missing_file_defaults_true(tmp_path):
-    assert read_project_config(tmp_path) == {"sidebar": True}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
 
 
 def test_read_project_config_reads_sidebar_false(tmp_path):
     (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar: false\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": False}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}}
+
+
+def test_read_project_config_reads_sidebar_object_with_depth(tmp_path):
+    (tmp_path / "_quarto.yml").write_text(
+        "quarto-graph:\n  sidebar:\n    enabled: true\n    depth: 2\n", encoding="utf-8"
+    )
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 2}}
+
+
+def test_read_project_config_sidebar_object_missing_depth_defaults_to_one(tmp_path):
+    (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar:\n    enabled: false\n", encoding="utf-8")
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}}
+
+
+def test_read_project_config_sidebar_depth_floors_at_one(tmp_path):
+    (tmp_path / "_quarto.yml").write_text(
+        "quarto-graph:\n  sidebar:\n    depth: 0\n", encoding="utf-8"
+    )
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
 
 
 def test_read_project_config_no_quarto_graph_key_defaults_true(tmp_path):
     (tmp_path / "_quarto.yml").write_text("project:\n  type: website\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": True}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
 
 
 def test_read_project_config_bad_yaml_warns_and_defaults(tmp_path, capsys):
     (tmp_path / "_quarto.yml").write_text("key: [unterminated\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": True}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
     assert "WARNING: bad YAML" in capsys.readouterr().err
 
 
-# --- page_sidebar_enabled -----------------------------------------------------
+# --- page_sidebar_config -------------------------------------------------------
 
 def _page_with_meta(meta):
     return {"meta": meta}
 
 
-def test_page_sidebar_enabled_falls_back_to_project_default_true():
-    assert page_sidebar_enabled(_page_with_meta({}), {"sidebar": True}) is True
+# The-graph-widget doc's "mini-panel shows?" table, 1:1 -- each row here is
+# that table's row, project sidebar -> page sidebar -> resolved config
+# (enabled implies "shows", not enabled implies "no").
+@pytest.mark.parametrize(
+    "project_sidebar, page_sidebar, expected",
+    [
+        pytest.param({"enabled": True, "depth": 1}, None, {"enabled": True, "depth": 1}, id="true-unset-yes-depth-1"),
+        pytest.param({"enabled": True, "depth": 1}, False, {"enabled": False, "depth": 1}, id="true-false-no"),
+        pytest.param({"enabled": False, "depth": 1}, None, {"enabled": False, "depth": 1}, id="false-unset-no"),
+        pytest.param({"enabled": False, "depth": 1}, True, {"enabled": True, "depth": 1}, id="false-true-yes-depth-1"),
+        pytest.param(
+            {"enabled": True, "depth": 2}, {"depth": 3}, {"enabled": True, "depth": 3}, id="depth-2-depth-3-yes-depth-3"
+        ),
+    ],
+)
+def test_page_sidebar_config_docs_table(project_sidebar, page_sidebar, expected):
+    page_meta = {} if page_sidebar is None else {"quarto-graph": {"sidebar": page_sidebar}}
+    assert page_sidebar_config(_page_with_meta(page_meta), {"sidebar": project_sidebar}) == expected
 
 
-def test_page_sidebar_enabled_falls_back_to_project_default_false():
-    assert page_sidebar_enabled(_page_with_meta({}), {"sidebar": False}) is False
+def test_page_sidebar_config_falls_back_to_project_default_true():
+    assert page_sidebar_config(_page_with_meta({}), {"sidebar": {"enabled": True, "depth": 1}}) == {
+        "enabled": True, "depth": 1,
+    }
 
 
-def test_page_sidebar_enabled_page_overrides_project_true_to_false():
+def test_page_sidebar_config_falls_back_to_project_default_false():
+    assert page_sidebar_config(_page_with_meta({}), {"sidebar": {"enabled": False, "depth": 1}}) == {
+        "enabled": False, "depth": 1,
+    }
+
+
+def test_page_sidebar_config_page_overrides_project_true_to_false():
     page = _page_with_meta({"quarto-graph": {"sidebar": False}})
-    assert page_sidebar_enabled(page, {"sidebar": True}) is False
+    result = page_sidebar_config(page, {"sidebar": {"enabled": True, "depth": 1}})
+    assert result == {"enabled": False, "depth": 1}
 
 
-def test_page_sidebar_enabled_page_overrides_project_false_to_true():
+def test_page_sidebar_config_page_overrides_project_false_to_true():
     page = _page_with_meta({"quarto-graph": {"sidebar": True}})
-    assert page_sidebar_enabled(page, {"sidebar": False}) is True
+    result = page_sidebar_config(page, {"sidebar": {"enabled": False, "depth": 1}})
+    assert result == {"enabled": True, "depth": 1}
+
+
+def test_page_sidebar_config_page_depth_only_keeps_project_enabled():
+    page = _page_with_meta({"quarto-graph": {"sidebar": {"depth": 2}}})
+    result = page_sidebar_config(page, {"sidebar": {"enabled": False, "depth": 1}})
+    assert result == {"enabled": False, "depth": 2}
+
+
+def test_page_sidebar_config_page_enabled_only_keeps_project_depth():
+    page = _page_with_meta({"quarto-graph": {"sidebar": {"enabled": False}}})
+    result = page_sidebar_config(page, {"sidebar": {"enabled": True, "depth": 3}})
+    assert result == {"enabled": False, "depth": 3}
 
 
 # --- build_registry -----------------------------------------------------------

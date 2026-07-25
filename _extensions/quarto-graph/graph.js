@@ -1,9 +1,12 @@
 /* Interactive link graph (Obsidian-style graph view).
  *
  * Reads graph.json (emitted by the resolver) and renders:
- *   - the full graph into #quarto-graph-full on the generated /graph/ page
- *   - a local 1-hop mini graph at the top of the right sidebar on every
- *     other page that appears in the graph
+ *   - one full-graph widget per {{< quarto-graph-full >}} shortcode call
+ *     (".quarto-graph-full" elements), each independently sized/filtered
+ *     via its own data-* attributes (see full-graph.lua)
+ *   - a local N-hop mini graph at the top of the right sidebar on every
+ *     other page that appears in the graph (N from the page's resolved
+ *     `quarto-graph: sidebar: depth:` config, default 1)
  *
  * Self-contained vanilla JS + canvas: no external requests, works under any
  * path prefix (base URL is derived from this script's own src).
@@ -63,25 +66,24 @@
   }
 
   ready(function () {
-    var full = document.getElementById("quarto-graph-full");
+    var fulls = document.querySelectorAll(".quarto-graph-full");
     // The Lua filter stamps this meta tag only on pages with the sidebar
     // panel turned off (see filter.lua). Checked before the fetch, not
     // after, so a disabled page skips downloading and parsing graph.json
     // entirely instead of throwing the work away once it's already here.
-    if (!full && document.querySelector('meta[name="quarto-graph-sidebar"][content="false"]')) {
+    if (!fulls.length && document.querySelector('meta[name="quarto-graph-sidebar"][content="false"]')) {
       return;
     }
     fetch(base + "graph.json")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !data.nodes || !data.nodes.length) return;
-        if (full) {
-          initGraph(full, data, {
-            height: Math.max(420, Math.round(window.innerHeight * 0.65)),
-            focus: findCurrent(data),
-          });
+        if (fulls.length) {
+          for (var i = 0; i < fulls.length; i++) mountFullGraph(fulls[i], data);
         } else {
-          mountLocalPanel(data, findCurrent(data));
+          var depthMeta = document.querySelector('meta[name="quarto-graph-sidebar-depth"]');
+          var depth = depthMeta ? Math.max(1, parseInt(depthMeta.content, 10) || 1) : 1;
+          mountLocalPanel(data, findCurrent(data), depth);
         }
       })
       .catch(function () { /* graph is progressive enhancement only */ });
@@ -95,6 +97,106 @@
     return -1;
   }
 
+  function findByRel(data, rel) {
+    for (var i = 0; i < data.nodes.length; i++) {
+      if (data.nodes[i].rel === rel) return i;
+    }
+    return -1;
+  }
+
+  // Generalizes the mini-panel's original 1-hop-only subgraph build to N
+  // hops: BFS out from startIdx, keeping every node reached within `depth`
+  // edges, remapped to a dense 0..k index space the way initGraph expects.
+  // Adjacency list built once per call so each BFS level is O(frontier
+  // degree) instead of rescanning every edge in data.edges.
+  function bfsSubgraph(data, startIdx, depth) {
+    var adj = {};
+    data.edges.forEach(function (e) {
+      (adj[e[0]] || (adj[e[0]] = [])).push(e[1]);
+      (adj[e[1]] || (adj[e[1]] = [])).push(e[0]);
+    });
+    var keep = {};
+    keep[startIdx] = true;
+    var frontier = [startIdx];
+    for (var d = 0; d < depth && frontier.length; d++) {
+      var next = [];
+      frontier.forEach(function (idx) {
+        (adj[idx] || []).forEach(function (n) {
+          if (!keep[n]) { keep[n] = true; next.push(n); }
+        });
+      });
+      frontier = next;
+    }
+    var ids = Object.keys(keep).map(Number);
+    var remap = {};
+    ids.forEach(function (v, k) { remap[v] = k; });
+    return {
+      data: {
+        nodes: ids.map(function (v) { return data.nodes[v]; }),
+        edges: data.edges
+          .filter(function (e) { return remap[e[0]] != null && remap[e[1]] != null; })
+          .map(function (e) { return [remap[e[0]], remap[e[1]]]; }),
+      },
+      focus: remap[startIdx],
+    };
+  }
+
+  // Shared by mountFullGraph's fullscreen toggle and mountLocalPanel's
+  // expand button: same expand-arrows icon, same aria-label/title/click
+  // shape, only the className and click handler differ per caller.
+  function makeExpandButton(className, label, onClick) {
+    var btn = document.createElement("button");
+    btn.className = className;
+    btn.type = "button";
+    btn.setAttribute("aria-label", label);
+    btn.title = label;
+    btn.innerHTML =
+      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  // Mounts a single {{< quarto-graph-full >}} instance per its own data-*
+  // attributes (see full-graph.lua): data-width/data-height as raw CSS
+  // lengths on the container, data-depth+data-root for an N-hop subgraph
+  // centered on an explicit root (defaulting to the current page), and
+  // data-expandable="true" for a fullscreen-toggle button.
+  function mountFullGraph(el, data) {
+    var ds = el.dataset;
+    if (ds.width) el.style.width = ds.width;
+
+    var height;
+    if (ds.height) {
+      el.style.height = ds.height;
+      height = el.clientHeight || 420;
+    } else {
+      height = Math.max(420, Math.round(window.innerHeight * 0.65));
+    }
+
+    var graphData = data;
+    var focus;
+    var label = "Graph";
+    if (ds.depth) {
+      var depth = Math.max(1, parseInt(ds.depth, 10) || 1);
+      var center = ds.root ? findByRel(data, ds.root) : findCurrent(data);
+      if (center === -1) return; // resolved root/current page isn't a graph node: nothing to show
+      var sub = bfsSubgraph(data, center, depth);
+      graphData = sub.data;
+      focus = sub.focus;
+      label = "Local graph · " + data.nodes[center].title;
+    } else {
+      focus = findCurrent(data);
+    }
+
+    initGraph(el, graphData, { height: height, focus: focus });
+
+    if (ds.expandable === "true") {
+      el.appendChild(makeExpandButton("quarto-graph-full__expand", "Expand graph to fullscreen", function () {
+        openGraphModal(graphData, focus, label, { big: true });
+      }));
+    }
+  }
+
   // mkdocs-material uses .md-sidebar--secondary; Quarto's default website/
   // book right margin (toc: true) uses #quarto-margin-sidebar. Try both so
   // the same script drops into either theme unmodified.
@@ -103,7 +205,7 @@
     "#quarto-margin-sidebar",
   ];
 
-  function mountLocalPanel(data, cur) {
+  function mountLocalPanel(data, cur, depth) {
     if (cur === -1) return;
     var wrap = null;
     for (var s = 0; s < SIDEBAR_SELECTORS.length; s++) {
@@ -112,23 +214,8 @@
     }
     if (!wrap) return;
 
-    var keep = {};
-    keep[cur] = true;
-    data.edges.forEach(function (e) {
-      if (e[0] === cur) keep[e[1]] = true;
-      if (e[1] === cur) keep[e[0]] = true;
-    });
-    var ids = Object.keys(keep).map(Number);
-    if (ids.length < 2) return; // isolated page: nothing to show
-
-    var remap = {};
-    ids.forEach(function (v, k) { remap[v] = k; });
-    var sub = {
-      nodes: ids.map(function (v) { return data.nodes[v]; }),
-      edges: data.edges
-        .filter(function (e) { return remap[e[0]] != null && remap[e[1]] != null; })
-        .map(function (e) { return [remap[e[0]], remap[e[1]]]; }),
-    };
+    var sub = bfsSubgraph(data, cur, depth);
+    if (sub.data.nodes.length < 2) return; // isolated page: nothing to show
 
     var panel = document.createElement("div");
     panel.className = "quarto-graph-panel";
@@ -139,15 +226,8 @@
     title.textContent = "Graph";
     title.href = new URL(data.graphUrl || "graph.html", base).href;
     title.title = "Open the full graph";
-    var expand = document.createElement("button");
-    expand.className = "quarto-graph-panel__expand";
-    expand.type = "button";
-    expand.setAttribute("aria-label", "Expand local graph");
-    expand.title = "Expand local graph";
-    expand.innerHTML =
-      '<svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>';
-    expand.addEventListener("click", function () {
-      openLocalPopup(sub, remap[cur], data.nodes[cur].title);
+    var expand = makeExpandButton("quarto-graph-panel__expand", "Expand local graph", function () {
+      openGraphModal(sub.data, sub.focus, "Local graph · " + data.nodes[cur].title);
     });
     head.appendChild(title);
     head.appendChild(expand);
@@ -156,31 +236,34 @@
     panel.appendChild(box);
     wrap.insertBefore(panel, wrap.firstChild);
 
-    initGraph(box, sub, {
+    initGraph(box, sub.data, {
       height: 170,
-      focus: remap[cur],
+      focus: sub.focus,
       mini: true,
     });
   }
 
-  /* Enlarged local graph in a modal — same 1-hop subgraph as the panel,
-   * with full pan/zoom and click-to-open. Closes on x, Escape, backdrop. */
-  function openLocalPopup(sub, focus, title) {
+  /* Enlarged graph in a modal — full pan/zoom and click-to-open. Used by
+   * the mini-panel's expand button (small box) and the full widget's
+   * fullscreen toggle (opts.big, near-fullscreen box). Closes on x,
+   * Escape, backdrop. */
+  function openGraphModal(data, focus, label, opts) {
+    opts = opts || {};
     if (document.querySelector(".quarto-graph-modal")) return;
     var overlay = document.createElement("div");
     overlay.className = "quarto-graph-modal";
     var box = document.createElement("div");
-    box.className = "quarto-graph-modal__box";
+    box.className = "quarto-graph-modal__box" + (opts.big ? " quarto-graph-modal__box--full" : "");
     var head = document.createElement("div");
     head.className = "quarto-graph-modal__head";
-    var label = document.createElement("span");
-    label.className = "quarto-graph-modal__title";
-    label.textContent = "Local graph · " + title;
+    var labelEl = document.createElement("span");
+    labelEl.className = "quarto-graph-modal__title";
+    labelEl.textContent = label;
     var close = document.createElement("button");
     close.className = "quarto-graph-modal__close";
     close.setAttribute("aria-label", "Close graph");
     close.textContent = "×";
-    head.appendChild(label);
+    head.appendChild(labelEl);
     head.appendChild(close);
     var body = document.createElement("div");
     box.appendChild(head);
@@ -201,8 +284,8 @@
     });
     close.addEventListener("click", destroy);
 
-    initGraph(body, sub, {
-      height: Math.min(560, Math.round(window.innerHeight * 0.62)),
+    initGraph(body, data, {
+      height: opts.big ? Math.round(window.innerHeight * 0.86) : Math.min(560, Math.round(window.innerHeight * 0.62)),
       focus: focus,
     });
     close.focus();

@@ -10,11 +10,12 @@ Two views of the same data, both reading the same `graph.json`:
   on any page you choose (this project puts it on [[Graph]] (`[[Graph]]`)) to show every
   page as a node and every resolved wikilink, or plain Markdown link
   between two project pages, as an edge. Drag nodes, scroll to zoom, click
-  a node to open that page.
-- **Sidebar mini-panel**: on every page, a small 1-hop subgraph (the
-  current page plus everything it directly links to or from) mounts at the
-  top of the right-hand TOC sidebar. Clicking it opens a larger modal
-  version of the same 1-hop view.
+  a node to open that page. Multiple instances on one page are fine, each
+  with its own params. See [Customizing the full graph widget](#customizing-the-full-graph-widget).
+- **Sidebar mini-panel**: on every page, a small N-hop subgraph (the
+  current page plus everything within N links of it; 1-hop by default)
+  mounts at the top of the right-hand TOC sidebar. Clicking it opens a
+  larger modal version of the same subgraph.
 
 Both are drawn by the same client-side canvas widget
 (`_extensions/quarto-graph/graph.js`). The browser fetches `graph.json`
@@ -55,35 +56,75 @@ Each node's color comes from its page's `type:` frontmatter (see
 | `moc` | #8fa6d9 |
 | (none/other) | #9aa0a6 |
 
+## Customizing the full graph widget
+
+`{{{< quarto-graph-full >}}}` takes kwargs, all optional:
+
+| Kwarg | Meaning |
+|---|---|
+| `width` | Any CSS length (`"600px"`, `"80%"`, `"50vw"`) applied to the widget's container. Default: fills its container. |
+| `height` | Any CSS length. Default: `max(420px, 65% of viewport height)`. |
+| `depth` | Show only pages within N links of `root` (or the current page, if `root` is omitted), instead of the whole project graph. |
+| `root` | The page to center `depth` on. Matched the same way a `[[wikilink]]` is: by title, alias, or filename stem first, falling back to a literal source path (e.g. `posts/foo.qmd`) if nothing matches. Ignored unless `depth` is also set. |
+| `expandable` | `"true"` adds a button that expands the widget to a fullscreen overlay. Default: off. |
+
+```markdown
+{{{< quarto-graph-full width="700px" height="50vh" expandable="true" >}}}
+
+{{{< quarto-graph-full root="Getting Started" depth="2" >}}}
+```
+
+Each `{{{< quarto-graph-full >}}}` call is independent. There's no
+project-wide default for any of these, unlike the sidebar mini-panel below.
+A `root` that doesn't match any page logs a warning at render time and that
+particular widget renders nothing, rather than silently falling back to the
+whole graph.
+
 ## Configuring the sidebar mini-panel
 
 The full graph view is always opt-in, placed by the `{{{< quarto-graph-full >}}}`
-shortcode. The sidebar mini-panel is on by default everywhere else, but it
-can be turned off, globally or per page.
+shortcode. The sidebar mini-panel is on by default everywhere else, 1-hop
+from the current page, but both whether it shows and how many hops it
+reaches can be changed, globally or per page.
 
 Global default, in `_quarto.yml`:
 
 ```yaml
 quarto-graph:
-  sidebar: true   # default
+  sidebar: true   # shorthand for {enabled: true, depth: 1}, both defaults
 ```
 
-Per-page override, same key, in that page's own frontmatter:
+Or spell out either field:
+
+```yaml
+quarto-graph:
+  sidebar:
+    enabled: true
+    depth: 2
+```
+
+Per-page override, same key, in that page's own frontmatter, either the
+bare bool or the `{enabled, depth}` form:
 
 ```yaml
 ---
 title: My Page
 quarto-graph:
-  sidebar: false
+  sidebar:
+    depth: 3   # this page only; enabled still inherits the project default
 ---
 ```
 
+A page's override only replaces the field(s) it actually sets: overriding
+just `depth:` keeps the project's `enabled`, and vice versa.
+
 | `_quarto.yml` `sidebar` | page `sidebar` | mini-panel shows? |
 |---|---|---|
-| `true` (default) | unset | yes |
+| `true` (default) | unset | yes, depth 1 |
 | `true` | `false` | no |
 | `false` | unset | no |
-| `false` | `true` | yes |
+| `false` | `true` | yes, depth 1 |
+| `{enabled: true, depth: 2}` | `{depth: 3}` | yes, depth 3 |
 
 A page with the panel turned off skips fetching `graph.json` entirely, not
 just skips drawing it — see [[Under the Hood]]. The full graph view is
