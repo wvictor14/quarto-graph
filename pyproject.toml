@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "setuptools-scm>=8"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "quarto-graph"
-dynamic = ["version"]
+version = "0.1.1"
 description = "Obsidian-wikilink resolver shared by the quarto-graph Quarto extension and editor tooling"
 license = "MIT"
 requires-python = ">=3.9"
@@ -18,5 +18,3 @@ test = ["pytest"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools_scm]

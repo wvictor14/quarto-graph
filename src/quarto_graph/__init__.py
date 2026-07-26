@@ -2,4 +2,4 @@
 Quarto extension's batch build and any editor tooling built on top of it.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
