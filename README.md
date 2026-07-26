@@ -1,5 +1,7 @@
 # quarto-graph
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Quarto project-type extension: adds Obsidian-style `[[wikilinks]]`,
 backlinks, and an interactive graph view to a normal Quarto project. Ported
 from the sonomabio wiki's MkDocs-based graph widget.
