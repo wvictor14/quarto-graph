@@ -8,10 +8,19 @@ from the sonomabio wiki's MkDocs-based graph widget.
 
 ## Quick start
 
+Install the python package
+
 ```sh
-pip install -e .
-cd example-docs
-quarto preview .
+pip install -e quarto-graph
+```
+
+Install quarto, and then the extension
+
+```sh
+quarto add wvictor14/quarto-graph
+
+# Run example
+quarto preview example-docs
 ```
 
 To use in your own project: `quarto add` this extension, then add
@@ -30,14 +39,14 @@ To use in your own project: `quarto add` this extension, then add
 ## next steps
 
 - [x] treat normal markdown links as nodes in graph (currently are ignored)
-- [ ] better handle on widget embed (layouts, configuration)
-- [ ] publish with GHA
+- [x] better handle on widget embed (layouts, configuration)
+- [x] publish with GHA
 - [ ] nested links - how do we handle folders
-- [ ] publish to pip
-- [ ] publish to quarto extension distributor
-- [ ] test in another project (evaluate the ux for install, and usage)
-- [ ] optimize graph widget
-
+- [x] publish to pip
+- [x] publish to quarto extension distributor (it's just github I guess)
+- [ ] test in another project (evaluate the ux for install, and usage) {.in-progress}
+- [ ] more fully flesh out cli
+  - explore what can be done with exposed graph data e.g. in an analysis or dashboard
 
 # Roadmap
 
@@ -52,9 +61,10 @@ version 1 should have these features:
 
 Optional nice to haves
 
-- [ ] customization of graph widget
+- [x] customization of graph widget
 - [x] support backlinks graph data enables automatic backlink injection
 - [x] Aliases / naming
-- [ ] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
+- [x] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
+  - Sort of done, but could be more fully fleshed out including docs
 - [ ] vscode/positron extension that handles autocomplete? other features?
 - [ ] customize colors for the nodes
