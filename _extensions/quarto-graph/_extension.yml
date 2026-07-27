@@ -8,13 +8,6 @@ contributes:
       type: website
       pre-render: python3 _extensions/quarto-graph/prerender.py
       post-render: python3 _extensions/quarto-graph/postrender.py
-    website:
-      sidebar:
-        style: docked
-        contents: auto
-    format:
-      html:
-        toc: true
   filters:
     - filter.lua
   shortcodes:

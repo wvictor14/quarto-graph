@@ -9,7 +9,7 @@ type: reference
 Install the quarto extension:
 
 ```sh
-quarto add quarto-graph
+quarto add wvictor14/quarto-graph
 ```
 
 Then install the Python package, which resolves the graph data:
