@@ -68,3 +68,7 @@ Optional nice to haves
   - Sort of done, but could be more fully fleshed out including docs
 - [ ] vscode/positron extension that handles autocomplete? other features?
 - [ ] customize colors for the nodes
+
+Issues
+
+- [ ] Strict mode not accessible via extension at the moment (just cli)

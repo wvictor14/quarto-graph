@@ -1,5 +1,14 @@
 Versioning
 
+There is versioning for the quarto extension `_extension.yml` and then versioning
+for the python package. They are not necessarily in sync.
+
+# Quarto extension
+
+Manually bump the version in `_extension.yml`
+
+# Python package
+
 ```bash
 uv version --bump patch #bumps toml
 git commit -am "release $(uv version --short)"
