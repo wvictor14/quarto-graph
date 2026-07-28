@@ -8,6 +8,10 @@ connected via links. Wikilinks can expediate knowledge discovery, because
 connections can be explicitly visualized in a graph. This site itself was built
 with `quarto-graph`.
 
+`quarto-graph` doesn't rewrite your `.qmd` files, generate pages, or replace
+Quarto's own project structure — it only resolves links and draws a graph
+at render time. See [[Limitations]] for what it doesn't do yet.
+
 Click on a node, which is a link to a specific page of this website.
 
 {{< quarto-graph-full >}}
@@ -41,5 +45,6 @@ and concept for a long time.*
 - **[[Wikilinks and Aliases]]**: the linking syntax and how links get resolved
 - **[[Backlinks]]**: the "pages that link here" section, injected live at runtime
 - **[[The Graph Widget]]**: the full graph view and the sidebar mini-panel
+- **[[CLI]]**: `quarto-graph check`, for editor tooling and CI
 - **[[Limitations]]**: what's not supported yet
 - **[[Under the Hood]]**: the resolution pipeline, for when something goes wrong
