@@ -111,6 +111,11 @@ container lookup — one answers "is there room for this," the other answers
 ## Strict mode
 
 The pre-render script accepts `--strict`, which turns any unresolved
-wikilink into a build failure instead of just a warning. Add it to the
-`pre-render` line in `_extension.yml` if you want broken links caught in
-CI rather than discovered by a reader.
+wikilink into a build failure instead of just a warning. The default
+`pre-render` line in `_extension.yml` (just `prerender.py`) is auto-resolved
+by Quarto against wherever the extension actually got installed, so it
+can't carry extra arguments. To enable `--strict`, replace that line in your
+installed copy with an explicit command pointing at its real path, e.g.
+`python3 _extensions/wvictor14/quarto-graph/prerender.py --strict` if you
+installed via `quarto add wvictor14/quarto-graph` — check your project's
+`_extensions/` folder for the exact path if you installed it differently.

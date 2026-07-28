@@ -6,8 +6,8 @@ contributes:
   project:
     project:
       type: website
-      pre-render: python3 _extensions/quarto-graph/prerender.py
-      post-render: python3 _extensions/quarto-graph/postrender.py
+      pre-render: prerender.py
+      post-render: postrender.py
   filters:
     - filter.lua
   shortcodes:
