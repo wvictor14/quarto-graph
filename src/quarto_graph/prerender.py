@@ -43,10 +43,13 @@ def run_prerender(project_root, strict=False):
     (mainly for tests).
     """
     project_root = Path(project_root)
-    pages = [parse_page(p, project_root) for p in discover_paths(project_root)]
+    project_config = read_project_config(project_root)
+    pages = [
+        parse_page(p, project_root)
+        for p in discover_paths(project_root, project_config=project_config)
+    ]
     registry = build_registry(pages)
     backlinks, unresolved = build_backlinks(pages, registry)
-    project_config = read_project_config(project_root)
 
     payload = {
         "pages": {

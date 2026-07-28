@@ -164,26 +164,34 @@ def _is_excluded(rel, patterns):
     """True if `rel` (a project-relative PurePosixPath) matches any
     `quarto-graph: exclude:` pattern. A trailing "/" pattern excludes that
     directory and everything under it; anything else is matched via
-    fnmatch against the posix path string. This is quarto-graph's own
-    minimal syntax, not a reimplementation of Quarto's `render:` glob
-    spec -- it's an exclude-only list, so no negation is needed."""
-    rel_parts = rel.parts
+    fnmatch against the posix path string, case-sensitively regardless of
+    the host OS (fnmatchcase, not fnmatch -- plain fnmatch normalizes case
+    per os.path.normcase, which would make an exclude pattern's case
+    sensitivity depend on which OS runs quarto-graph). This is
+    quarto-graph's own minimal syntax, not a reimplementation of Quarto's
+    `render:` glob spec -- it's an exclude-only list, so no negation is
+    needed."""
     rel_str = str(rel)
     for pattern in patterns:
         if pattern.endswith("/"):
-            prefix = pattern.rstrip("/").split("/")
-            if list(rel_parts[:len(prefix)]) == prefix:
+            if rel.is_relative_to(PurePosixPath(pattern.rstrip("/"))):
                 return True
-        elif fnmatch.fnmatch(rel_str, pattern):
+        elif fnmatch.fnmatchcase(rel_str, pattern):
             return True
     return False
 
 
-def discover_paths(project_root):
+def discover_paths(project_root, project_config=None):
     """Every page quarto-graph treats as part of the project, minus this
     project's own `quarto-graph: exclude:` patterns (full opt-out -- an
     excluded page is never scanned, and a [[wikilink]] pointing at it comes
     back unresolved, same as a typo).
+
+    `project_config` lets a caller that already loaded `read_project_config`
+    (e.g. prerender.py, which also needs it for sidebar config) pass it in
+    directly instead of this function reading and YAML-parsing
+    `_quarto.yml` a second time. Defaults to loading it here for callers
+    (e.g. check.py) that only need the exclude list.
 
     Two discovery mechanisms, chosen by whether project_root is a declared
     Quarto project (has a `_quarto.yml`/`_quarto.yaml`):
@@ -196,7 +204,10 @@ def discover_paths(project_root):
       already got burned once guessing at a Quarto convention -- see
       docs/adr/0001-non-destructive-render-time-resolution.md; this is the
       same lesson applied to render scope -- see
-      docs/adr/0004-delegate-file-discovery-to-quarto-inspect.md).
+      docs/adr/0004-delegate-file-discovery-to-quarto-inspect.md). Only
+      `.qmd`/`.md` entries are kept -- `quarto inspect` can also list
+      `.ipynb`/`.Rmd` render inputs, which this project's Markdown-only
+      frontmatter/wikilink parsing can't handle.
     - No project file at all: `quarto inspect` refuses to run ("... is not
       a Quarto project"), so fall back to a plain rglob scan with the same
       default-exclusion set applied by hand. This is the only path
@@ -204,15 +215,24 @@ def discover_paths(project_root):
       that was never wrapped in a Quarto project.
     """
     project_root = Path(project_root)
-    if _quarto_project_config_path(project_root) is not None:
+    config_path = _quarto_project_config_path(project_root)
+    if config_path is not None:
         resolved_root = project_root.resolve()
-        result = subprocess.run(
-            ["quarto", "inspect", str(resolved_root)],
-            capture_output=True, text=True, check=True,
-        )
+        try:
+            result = subprocess.run(
+                ["quarto", "inspect", str(resolved_root)],
+                capture_output=True, text=True, check=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+            raise RuntimeError(
+                "quarto-graph needs the `quarto` CLI to inspect {} (it has a "
+                "_quarto.yml/_quarto.yaml). Install Quarto, or run against a "
+                "plain folder with no project file.".format(project_root)
+            ) from exc
         paths = {
             project_root / Path(f).relative_to(resolved_root)
             for f in json.loads(result.stdout)["files"]["input"]
+            if f.endswith((".qmd", ".md"))
         }
     else:
         paths = {
@@ -222,7 +242,9 @@ def discover_paths(project_root):
             and p.name not in DEFAULT_EXCLUDE_FILENAMES
         }
 
-    exclude_patterns = read_project_config(project_root)["exclude"]
+    if project_config is None:
+        project_config = read_project_config(project_root, config_path=config_path)
+    exclude_patterns = project_config["exclude"]
     return sorted(
         p for p in paths
         if not _is_excluded(PurePosixPath(p.relative_to(project_root).as_posix()), exclude_patterns)
@@ -311,15 +333,20 @@ def _coerce_exclude_config(value):
     return patterns
 
 
-def read_project_config(project_root):
+def read_project_config(project_root, config_path=None):
     """Load the project-wide `quarto-graph:` mapping from `_quarto.yml` (or
     `_quarto.yaml`) at project_root, returning {"sidebar": {"enabled": bool,
     "depth": int}, "exclude": [pattern, ...]}. Missing file, bad YAML, or a
     missing key all fall back to that key's default independently (bad YAML
-    also warns to stderr, same as parse_page's own frontmatter handling)."""
+    also warns to stderr, same as parse_page's own frontmatter handling).
+
+    `config_path` lets a caller that already resolved
+    `_quarto_project_config_path` (discover_paths) pass it in directly
+    instead of this function re-doing that same existence check."""
     project_root = Path(project_root)
     defaults = {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG), "exclude": []}
-    config_path = _quarto_project_config_path(project_root)
+    if config_path is None:
+        config_path = _quarto_project_config_path(project_root)
     if config_path is None:
         return defaults
     try:
@@ -330,14 +357,8 @@ def read_project_config(project_root):
     quarto_graph = doc.get("quarto-graph") if isinstance(doc, dict) else None
     quarto_graph = quarto_graph if isinstance(quarto_graph, dict) else {}
     return {
-        "sidebar": (
-            _coerce_sidebar_config(quarto_graph["sidebar"])
-            if "sidebar" in quarto_graph else dict(DEFAULT_SIDEBAR_CONFIG)
-        ),
-        "exclude": (
-            _coerce_exclude_config(quarto_graph["exclude"])
-            if "exclude" in quarto_graph else []
-        ),
+        "sidebar": _coerce_sidebar_config(quarto_graph.get("sidebar", DEFAULT_SIDEBAR_CONFIG)),
+        "exclude": _coerce_exclude_config(quarto_graph.get("exclude", [])),
     }
 
 

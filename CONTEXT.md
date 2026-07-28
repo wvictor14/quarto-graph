@@ -39,14 +39,14 @@ mini-panel shortcode call to attach a `root=` kwarg to.
 **Exclude** (`quarto-graph: exclude:` in `_quarto.yml`, project-level only):
 a list of quarto-graph's own patterns (trailing `/` = a directory and
 everything under it, otherwise a plain glob) naming pages that don't
-participate in the wikilink graph at all — a **full opt-out**, not a
+participate in the wikilink graph at all, a **full opt-out**, not a
 display filter on the graph widget. An excluded page is never scanned,
-can't be linked *to* — a `[[wikilink]]` pointing at it comes back
+can't be linked *to*. A `[[wikilink]]` pointing at it comes back
 unresolved, the same as a typo. Independent of whether Quarto itself
 renders the page. No page-level frontmatter override yet (unlike Sidebar
 config's cascade); if one's added later, follow that same project-default →
 page-override pattern.
-_Avoid_ conflating with Quarto's own `project: render:` list — that
+_Avoid_ conflating with Quarto's own `project: render:` list, which
 controls what Quarto renders and is read automatically via `quarto
 inspect` (see `docs/adr/0004-delegate-file-discovery-to-quarto-inspect.md`);
 `exclude:` is a narrower, additional cut on top of that, scoped only to the
