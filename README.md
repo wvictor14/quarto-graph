@@ -64,7 +64,8 @@ Optional nice to haves
 - [x] customization of graph widget
 - [x] support backlinks graph data enables automatic backlink injection
 - [x] Aliases / naming
-- [x] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
+- [ ] cli interface -> good for CI, opens the door for more user customization (basically exposing the data without quarto runtime)
+  - complication: render / target resolves currently depend on quarto runtime (relies on quarto's resolver), meaning standalone cli would need to add quarto dependency for exact behaviour matching.
   - Sort of done, but could be more fully fleshed out including docs
 - [ ] vscode/positron extension that handles autocomplete? other features?
 - [ ] customize colors for the nodes

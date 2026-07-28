@@ -6,6 +6,7 @@ from quarto_graph.core import (
     anchor_slug,
     build_backlinks,
     build_registry,
+    discover_paths,
     find_wikilinks_outside_fences,
     identifier_chain,
     normalize_ws,
@@ -74,42 +75,110 @@ def test_parse_page_reads_type(tmp_path):
 # --- read_project_config -----------------------------------------------------
 
 def test_read_project_config_missing_file_defaults_true(tmp_path):
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
 
 
 def test_read_project_config_reads_sidebar_false(tmp_path):
     (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar: false\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": []}
 
 
 def test_read_project_config_reads_sidebar_object_with_depth(tmp_path):
     (tmp_path / "_quarto.yml").write_text(
         "quarto-graph:\n  sidebar:\n    enabled: true\n    depth: 2\n", encoding="utf-8"
     )
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 2}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 2}, "exclude": []}
 
 
 def test_read_project_config_sidebar_object_missing_depth_defaults_to_one(tmp_path):
     (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar:\n    enabled: false\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": []}
 
 
 def test_read_project_config_sidebar_depth_floors_at_one(tmp_path):
     (tmp_path / "_quarto.yml").write_text(
         "quarto-graph:\n  sidebar:\n    depth: 0\n", encoding="utf-8"
     )
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
 
 
 def test_read_project_config_no_quarto_graph_key_defaults_true(tmp_path):
     (tmp_path / "_quarto.yml").write_text("project:\n  type: website\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
 
 
 def test_read_project_config_bad_yaml_warns_and_defaults(tmp_path, capsys):
     (tmp_path / "_quarto.yml").write_text("key: [unterminated\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
     assert "WARNING: bad YAML" in capsys.readouterr().err
+
+
+def test_read_project_config_reads_exclude_list(tmp_path):
+    (tmp_path / "_quarto.yml").write_text(
+        "quarto-graph:\n  exclude:\n    - archive/\n    - \"*.draft.qmd\"\n", encoding="utf-8"
+    )
+    assert read_project_config(tmp_path)["exclude"] == ["archive/", "*.draft.qmd"]
+
+
+def test_read_project_config_exclude_not_a_list_warns_and_defaults(tmp_path, capsys):
+    (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  exclude: not-a-list\n", encoding="utf-8")
+    assert read_project_config(tmp_path)["exclude"] == []
+    assert "WARNING: quarto-graph: exclude:" in capsys.readouterr().err
+
+
+def test_read_project_config_exclude_drops_non_string_entries(tmp_path, capsys):
+    (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  exclude:\n    - archive/\n    - 5\n", encoding="utf-8")
+    assert read_project_config(tmp_path)["exclude"] == ["archive/"]
+    assert "WARNING: ignoring non-string exclude pattern" in capsys.readouterr().err
+
+
+# --- discover_paths -----------------------------------------------------------
+
+def test_discover_paths_fallback_skips_default_excluded_filenames(tmp_path):
+    # No _quarto.yml at all -- fallback branch, must apply the same
+    # README/CLAUDE.md/AGENTS.md filtering quarto inspect gives for free in
+    # the real-project branch.
+    (tmp_path / "Visible.md").write_text("content\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text("content\n", encoding="utf-8")
+    (tmp_path / "README.qmd").write_text("content\n", encoding="utf-8")
+    (tmp_path / "CLAUDE.md").write_text("content\n", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("content\n", encoding="utf-8")
+    assert [p.name for p in discover_paths(tmp_path)] == ["Visible.md"]
+
+
+def test_discover_paths_real_project_honors_render_list_negation(tmp_path):
+    # Only quarto inspect understands `render:` negation -- this only
+    # passes if the quarto-inspect branch actually ran, not the fallback.
+    (tmp_path / "_quarto.yml").write_text(
+        'project:\n  type: default\n  render:\n    - "*.qmd"\n    - "!drafts/"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "index.qmd").write_text("content\n", encoding="utf-8")
+    (tmp_path / "drafts").mkdir()
+    (tmp_path / "drafts" / "secret.qmd").write_text("content\n", encoding="utf-8")
+    rels = {p.relative_to(tmp_path).as_posix() for p in discover_paths(tmp_path)}
+    assert rels == {"index.qmd"}
+
+
+def test_discover_paths_exclude_directory_prefix(tmp_path):
+    (tmp_path / "_quarto.yml").write_text(
+        "project:\n  type: default\nquarto-graph:\n  exclude:\n    - archive/\n", encoding="utf-8"
+    )
+    (tmp_path / "index.qmd").write_text("content\n", encoding="utf-8")
+    (tmp_path / "archive").mkdir()
+    (tmp_path / "archive" / "old.qmd").write_text("content\n", encoding="utf-8")
+    rels = {p.relative_to(tmp_path).as_posix() for p in discover_paths(tmp_path)}
+    assert rels == {"index.qmd"}
+
+
+def test_discover_paths_exclude_glob_pattern(tmp_path):
+    (tmp_path / "_quarto.yml").write_text(
+        'project:\n  type: default\nquarto-graph:\n  exclude:\n    - "*.draft.qmd"\n', encoding="utf-8"
+    )
+    (tmp_path / "index.qmd").write_text("content\n", encoding="utf-8")
+    (tmp_path / "scratch.draft.qmd").write_text("content\n", encoding="utf-8")
+    rels = {p.relative_to(tmp_path).as_posix() for p in discover_paths(tmp_path)}
+    assert rels == {"index.qmd"}
 
 
 # --- page_sidebar_config -------------------------------------------------------

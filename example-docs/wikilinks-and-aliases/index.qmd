@@ -104,6 +104,26 @@ To make broken links fail the *build* instead of just warning, pass
 `--strict` to the pre-render script (edit the `pre-render` line in
 `_extensions/quarto-graph/_extension.yml`); see [[Under the Hood]].
 
+## Excluding a page from the graph entirely
+
+A project-wide `quarto-graph: exclude:` list in `_quarto.yml` removes
+matching pages from the registry before it's built — a full opt-out, not
+just hiding a node from [[The Graph Widget]]'s drawing. An excluded page is
+never scanned, and a `[[wikilink]]` pointing at it comes back **unresolved**,
+the same as a typo:
+
+```yaml
+quarto-graph:
+  exclude:
+    - archive/       # this directory and everything under it
+    - "*.draft.qmd"  # glob pattern, matched against each page's project-relative path
+```
+
+A trailing `/` excludes a directory and everything under it; anything else
+is a plain glob. This is quarto-graph's own list, independent of whether
+Quarto itself renders the page — see [[Under the Hood]] for how it composes
+with Quarto's own `project: render:` scope.
+
 ## Plain Markdown links resolve too, but differently
 
 A normal Markdown link, `[text](other.qmd)`, is also treated as an edge and

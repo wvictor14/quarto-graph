@@ -11,6 +11,24 @@ runtime. None of them ever rewrite your page source:
    hook runs a script that scans every page in the project. It's a full
    scan every time, even when Quarto is only rendering one page, because
    that page still needs to resolve links against every *other* page.
+
+   Discovering which pages count as "every page" is not a hand-rolled
+   file walk: since a Quarto project can restrict its own render scope
+   (`project: render:`, a glob list with `!`-prefixed excludes) and skips
+   a few files by default (dot/underscore-prefixed paths, `README.md`/
+   `.qmd`, `CLAUDE.md`, `AGENTS.md`), the scan shells out to `quarto
+   inspect` and reads its resolved file list directly, rather than
+   guessing at those rules itself — this project got burned once already
+   assuming a Quarto convention instead of asking Quarto for it (see
+   below, "Why nothing computes a page's own output URL"). The only time
+   it falls back to a plain recursive `.qmd`/`.md` file walk is when
+   `project_root` has no `_quarto.yml`/`_quarto.yaml` at all, which
+   `quarto inspect` refuses to run against — the case `quarto-graph check`
+   needs to keep supporting for a plain folder of notes that was never
+   wrapped in a Quarto project. Either way, quarto-graph's own
+   `quarto-graph: exclude:` list (see [[Wikilinks and Aliases]]) is applied
+   on top, as a separate, narrower cut scoped only to the wikilink graph.
+
    The script parses each page's `title:`, `also-known-as:`, `type:`, and
    `quarto-graph:` frontmatter, scans its body for double-bracketed
    wikilinks and for plain Markdown links that resolve to another project
