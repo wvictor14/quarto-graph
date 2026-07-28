@@ -10,7 +10,7 @@ Manually bump the version in `_extension.yml`
 # Python package
 
 ```bash
-uv version --bump patch #bumps toml
+uv version --bump minor #bumps toml
 git commit -am "release $(uv version --short)"
 git tag "v$(uv version --short)" && git push --follow-tags
 ```
