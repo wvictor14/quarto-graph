@@ -7,6 +7,7 @@ from quarto_graph.core import (
     build_backlinks,
     build_registry,
     find_wikilinks_outside_fences,
+    identifier_chain,
     normalize_ws,
     page_sidebar_config,
     parse_page,
@@ -231,6 +232,86 @@ def test_build_registry_registers_by_title_not_just_filename_stem():
     }
     registry = build_registry([p])
     assert registry["getting started"] is p
+
+
+# --- identifier_chain ---------------------------------------------------------
+
+def test_identifier_chain_folds_index_into_its_folder():
+    assert identifier_chain(PurePosixPath("a/b/c/index.md")) == ("a", "b", "c")
+
+
+def test_identifier_chain_keeps_stem_for_a_non_index_page():
+    assert identifier_chain(PurePosixPath("notes/Overview.md")) == ("notes", "Overview")
+
+
+def test_identifier_chain_keeps_index_for_the_top_level_page():
+    # There's only ever one literal index.md/index.qmd at the project root
+    # -- nothing to fold it into, and no collision risk from keeping it.
+    assert identifier_chain(PurePosixPath("index.md")) == ("index",)
+
+
+# --- build_registry: index.qmd folder-note resolution --------------------------
+
+def _index_page(rel, title=None):
+    rel = PurePosixPath(rel)
+    chain = identifier_chain(rel)
+    return {
+        "src": Path(rel.name),
+        "rel": rel,
+        "body": "",
+        "meta": {"title": title} if title else {},
+        "title": title or chain[-1],
+        "type": "",
+    }
+
+
+def test_build_registry_title_less_index_pages_resolve_by_folder_name():
+    page1 = _index_page("page1/index.md")
+    page2 = _index_page("page2/index.md")
+    registry = build_registry([page1, page2])
+    assert registry["page1"] is page1
+    assert registry["page2"] is page2
+
+
+def test_build_registry_bare_index_never_registered_and_warns_nothing(capsys):
+    page1 = _index_page("page1/index.md")
+    page2 = _index_page("page2/index.md")
+    registry = build_registry([page1, page2])
+    assert "index" not in registry
+    assert capsys.readouterr().err == ""
+
+
+def test_build_registry_explicit_index_suffix_also_resolves():
+    page1 = _index_page("page1/index.md")
+    registry = build_registry([page1])
+    assert registry["page1/index"] is page1
+    assert registry["page1"] is page1
+
+
+def test_build_registry_ambiguous_folder_name_disambiguated_by_qualified_path(capsys):
+    # Two folders both named "api" at different nesting depths: the bare
+    # name is a genuine ambiguity (warns once, first wins, unchanged
+    # policy), but each is still individually reachable once qualified.
+    docs_api = _index_page("docs/api/index.md")
+    vendor_api = _index_page("vendor/api/index.md")
+    registry = build_registry([docs_api, vendor_api])
+    assert registry["api"] is docs_api
+    assert "WARNING: duplicate link target" in capsys.readouterr().err
+    assert registry["docs/api"] is docs_api
+    assert registry["vendor/api"] is vendor_api
+
+
+def test_build_registry_title_still_qualifiable_by_ancestor_folder(capsys):
+    # The "general, not index-only" scope: an explicit title collision
+    # (not just a folder-name collision) is also disambiguated by qualifying
+    # it with enough of its own path.
+    notes = _index_page("notes/index.md", title="Overview")
+    projects = _index_page("projects/index.md", title="Overview")
+    registry = build_registry([notes, projects])
+    assert registry["overview"] is notes
+    assert "WARNING: duplicate link target" in capsys.readouterr().err
+    assert registry["notes/overview"] is notes
+    assert registry["projects/overview"] is projects
 
 
 # --- build_backlinks -----------------------------------------------------------

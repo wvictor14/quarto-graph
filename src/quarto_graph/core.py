@@ -160,6 +160,23 @@ def discover_paths(project_root):
     )
 
 
+def identifier_chain(rel):
+    """The path segments identifying a page for wikilink-registry purposes,
+    folding a trailing `index` stem into its containing folder -- an
+    `index.qmd` *is* its folder, the same way Obsidian folder-notes and
+    Quartz treat it, rather than a separately-named page called "index".
+
+    `a/b/c/index.qmd` -> ("a", "b", "c")
+    `notes/Overview.qmd` -> ("notes", "Overview")
+    top-level `index.qmd` -> ("index",) -- nothing to fold into, and there's
+    only ever one project-root page, so no collision risk.
+    """
+    parts = rel.parent.parts
+    if rel.stem.lower() == "index" and parts:
+        return parts
+    return parts + (rel.stem,)
+
+
 def parse_page(path, project_root):
     raw = path.read_text(encoding="utf-8")
     meta = {}
@@ -172,12 +189,13 @@ def parse_page(path, project_root):
             print("WARNING: bad frontmatter in {}: {}".format(path, exc), file=sys.stderr)
     meta = meta if isinstance(meta, dict) else {}
     rel = PurePosixPath(path.relative_to(project_root).as_posix())
+    chain = identifier_chain(rel)
     return {
         "src": path,
         "rel": rel,
         "body": body,
         "meta": meta,
-        "title": meta.get("title") or path.stem,
+        "title": meta.get("title") or chain[-1],
         "type": str(meta.get("type") or "").lower(),
     }
 
@@ -256,11 +274,27 @@ def build_registry(pages):
     page's own `title:` (its most reliable human-typed name — a real
     Quarto project commonly names every source file `index.qmd`, inside a
     slug-named folder, so the filename stem alone isn't a usable default),
-    its raw filename stem (still useful for a flat, one-file-per-page
-    project), and every name in its `also-known-as:` frontmatter list.
-    Deliberately not Quarto's own `aliases:` key — that key's values are
-    URLs Quarto turns into redirect stubs, a different concept from a
-    free-text alternate name for wikilink matching."""
+    its folder-path identifier (see `identifier_chain` — the raw filename
+    stem for a one-file-per-page project, or the containing folder's name
+    for an `index.qmd`, folder-note style), and every name in its
+    `also-known-as:` frontmatter list. Deliberately not Quarto's own
+    `aliases:` key — that key's values are URLs Quarto turns into redirect
+    stubs, a different concept from a free-text alternate name for wikilink
+    matching.
+
+    Both the folder-path identifier and an explicit `title:` also register
+    progressively longer ancestor-qualified forms (`[[api]]` ->
+    `[[docs/api]]` -> `[[project/docs/api]]`), so a name that collides
+    between two pages -- most commonly every folder's title-less
+    `index.qmd` colliding on its own folder name -- stays individually
+    reachable by qualifying it with enough of its path to be unique, the
+    same way Foam disambiguates same-named notes in different folders.
+    Bare `"index"` itself is never a usable target (every folder's
+    index.qmd would otherwise "collide" on it, which isn't a real
+    ambiguity) -- `identifier_chain` folds it into its folder for every
+    page except the project's own top-level `index.qmd`, the one page
+    where "index" is unique by construction.
+    """
     registry = {}
 
     def register(name, page):
@@ -277,11 +311,36 @@ def build_registry(pages):
     for page in pages:
         register(page["title"], page)
     for page in pages:
-        # "index" is not a usable default name -- a real Quarto project
-        # commonly names every page's source file index.qmd (inside a
-        # slug-named folder), so every such page would collide on it.
-        if page["src"].stem.lower() != "index":
-            register(page["src"].stem, page)
+        chain = identifier_chain(page["rel"])
+        # k=1 (the bare folder/stem name) is already registered above via
+        # `page["title"]` whenever there's no explicit `title:` frontmatter
+        # (title falls back to exactly this). Only register it again here
+        # when a custom title differs from it, so a folder note is still
+        # reachable by its bare folder name even when it also has its own
+        # title -- registering the same (page, key) pair twice is harmless,
+        # but re-registering it for every page would double every
+        # duplicate-target warning.
+        start = 1 if page["meta"].get("title") else 2
+        for k in range(start, len(chain) + 1):
+            register("/".join(chain[-k:]), page)
+    for page in pages:
+        title = page["meta"].get("title")
+        if not title:
+            continue
+        ancestors = page["rel"].parent.parts
+        for j in range(1, len(ancestors) + 1):
+            register("/".join(ancestors[-j:] + (str(title),)), page)
+    for page in pages:
+        # An index.qmd also keeps resolving by its literal, unfolded
+        # "folder/index" spelling -- for someone who'd rather write
+        # `[[page1/index]]` explicitly than rely on the folder-note-style
+        # bare `[[page1]]` above. Starts at 2 ancestors (`folder/index`),
+        # never bare `index` alone, for the same reason as `identifier_chain`.
+        if page["rel"].stem.lower() != "index":
+            continue
+        unfolded = page["rel"].parent.parts + ("index",)
+        for k in range(2, len(unfolded) + 1):
+            register("/".join(unfolded[-k:]), page)
     for page in pages:
         also_known_as = page["meta"].get("also-known-as") or []
         if isinstance(also_known_as, str):
