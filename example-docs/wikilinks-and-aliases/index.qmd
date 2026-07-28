@@ -25,12 +25,25 @@ Optional pieces can be added:
 A pre-render pass scans every page in the project once, before any page
 renders, and builds a registry of link targets. Each page contributes:
 
-- its `title:` frontmatter (or filename stem, if no title is set)
-- its bare filename stem, with folder and extension stripped, except the
-  stem `index`, which is skipped, since every page in a slug-folder project
-  would otherwise collide on it
+- its `title:` frontmatter (or its folder-path identifier, if no title is
+  set — see below)
+- its folder-path identifier: the bare filename stem, with folder and
+  extension stripped, for a normal page — but for an `index.qmd`, that's the
+  name of the folder it's *in*, not the word "index". A page at
+  `page1/index.qmd` is a folder note, the same way Obsidian's folder-note
+  plugins and Quartz treat it: it *is* `page1`, so `[[page1]]` resolves to
+  it directly. The bare word `index` itself is never a usable target — every
+  folder's `index.qmd` would otherwise "collide" on it, which isn't a real
+  ambiguity — except for the project's own top-level `index.qmd`, the one
+  page where "index" is unique by construction.
+- progressively longer folder-qualified forms of both the above: `[[api]]`,
+  and if that's ambiguous, `[[docs/api]]`, `[[project/docs/api]]`, and so on
+  up to the page's full path. This is also how an explicit `index` suffix
+  keeps working if you'd rather spell it out: `[[page1/index]]` resolves the
+  same page as `[[page1]]`.
 - each name listed under `also-known-as:` in its frontmatter (a single
-  string or a list of strings)
+  string or a list of strings) — these are exact-match only, not
+  folder-qualified, since they're already a deliberately-chosen unique name.
 
 All of these are lowercased before being stored, which is what makes lookups
 case-insensitive.
@@ -63,10 +76,9 @@ also-known-as:
 After that, `[[Setup]]` and `[[Installation]]` would resolve to this same
 page too.
 
-Full-path targets (a folder name followed by a page name) are not
-supported. Only bare stems and `also-known-as:` names resolve. See
-[[Limitations]] for this and other current gaps (embeds, inline-code-span
-safety).
+Full-path targets (a folder name followed by a page name) also resolve —
+see "Clashing names" below. See [[Limitations]] for other current gaps
+(embeds, inline-code-span safety).
 
 ## What "resolves" actually means
 
@@ -118,13 +130,19 @@ a typo'd path isn't necessarily a mistake. See [[Limitations]].
 ## Clashing names
 
 If two pages register the same target name (two files sharing a stem in
-different folders, two pages with the same `also-known-as:`, and so on),
-the registry keeps only the first one registered and prints:
+different folders, two `index.qmd` pages sharing a folder name, two pages
+with the same `also-known-as:`, and so on), the registry keeps only the
+first one registered and prints:
 
 ```
 WARNING: duplicate link target 'name' (first-page.qmd vs second-page.qmd); keeping first-page.qmd
 ```
 
-A bare wikilink to that name always resolves to whichever page was kept.
-There's no way to disambiguate by folder. Give the other page a unique
-`also-known-as:` name instead.
+A bare wikilink to that name always resolves to whichever page was kept —
+but the other page is still reachable, by qualifying the target with enough
+of its own folder path to be unique: `[[docs/api]]`,
+`[[vendor/api]]`, or, for a folder note specifically, the fully spelled-out
+`[[docs/api/index]]`. This applies to a `title:` collision too, not just a
+stem or folder-name one. `also-known-as:` names don't get this treatment —
+they're already a deliberately-chosen unique name, so give the other page
+one of those instead if you'd rather not qualify the path.

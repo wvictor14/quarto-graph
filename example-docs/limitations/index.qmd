@@ -17,13 +17,6 @@ URL: a page, rendered as if it were an image, which fails to
 load. An embed of a target that doesn't exist is just another unresolved
 wikilink warning, same as [[Wikilinks and Aliases|any other dangling link]].
 
-## Full-path wikilink targets
-
-Only a page's `title:`, its filename stem, and `also-known-as:` resolve.
-A folder-qualified target does not. See [[Wikilinks and Aliases]] for the
-registry mechanics this follows from, and how duplicate names are handled
-instead.
-
 ## Inline code spans
 
 A real single-backtick code span like `` `[[literal example]]` `` renders

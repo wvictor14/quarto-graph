@@ -41,7 +41,7 @@ To use in your own project: `quarto add` this extension, then add
 - [x] treat normal markdown links as nodes in graph (currently are ignored)
 - [x] better handle on widget embed (layouts, configuration)
 - [x] publish with GHA
-- [ ] nested links - how do we handle folders
+- [x] nested links - how do we handle folders
 - [x] publish to pip
 - [x] publish to quarto extension distributor (it's just github I guess)
 - [ ] test in another project (evaluate the ux for install, and usage) {.in-progress}
