@@ -11,7 +11,18 @@ website:
   title: "quarto-graph docs"
   sidebar:
     style: "docked"
-    contents: auto
+    contents:
+      - getting-started/index.qmd
+      - section: "Concepts"
+        contents:
+          - concepts/wikilinks-and-aliases/index.qmd
+          - concepts/the-graph-widget/index.qmd
+          - concepts/backlinks/index.qmd
+      - section: "Reference"
+        contents:
+          - reference/cli/index.qmd
+          - reference/limitations/index.qmd
+      - graph/index.qmd
 
 format:
   html:

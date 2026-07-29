@@ -77,3 +77,15 @@ def test_discover_pages_skips_dot_and_underscore_dirs(tmp_path):
 
 def test_discover_pages_empty_project_returns_empty(tmp_path):
     assert discover_pages(tmp_path) == []
+
+
+def test_check_links_excluded_page_reports_unresolved_not_silently_dropped(tmp_path):
+    # quarto-graph: exclude: is a full opt-out (see docs/adr/0004): an
+    # excluded page can't be linked *to* -- the wikilink comes back
+    # unresolved, same as a typo, not silently ignored.
+    _write(tmp_path, "_quarto.yml", "project:\n  type: default\nquarto-graph:\n  exclude:\n    - archive/\n")
+    _write(tmp_path, "Home.qmd", "See [[Old Project]].\n")
+    _write(tmp_path, "archive/Old Project.qmd", "content\n")
+    problems = check_links(tmp_path)
+    assert len(problems) == 1
+    assert problems[0]["target"] == "Old Project"

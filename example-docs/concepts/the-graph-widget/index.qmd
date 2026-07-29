@@ -39,7 +39,15 @@ with two nodes (Backlinks and The Graph Widget) and one edge between them:
 ```
 
 Edges are pairs of node indices; `[0, 1]` connects the first and second
-nodes. See [[Under the Hood]] for how this gets assembled.
+nodes.
+
+`graph.json` is assembled in two passes: pre-render builds the registry
+and backlink map from every page's wikilinks and writes it to a
+side-channel file; then, at each page's own render time, its Lua filter
+records that page's real output URL to another side-channel file. Post-render
+joins the two and writes the final `graph.json` into the output
+directory — this late join is why a wikilink resolves to a real URL only
+after the whole project has rendered, not up front.
 
 ## Node color
 
@@ -127,8 +135,8 @@ just `depth:` keeps the project's `enabled`, and vice versa.
 | `{enabled: true, depth: 2}` | `{depth: 3}` | yes, depth 3 |
 
 A page with the panel turned off skips fetching `graph.json` entirely, not
-just skips drawing it — see [[Under the Hood]]. The full graph view is
-unaffected either way, since it isn't governed by this key at all.
+just skips drawing it. The full graph view is unaffected either way, since
+it isn't governed by this key at all.
 
 ## If the widget doesn't show up
 
@@ -142,6 +150,17 @@ fetch(base + "graph.json")
 
 If it fails (404, network error, JSON parse error), the `.catch` block
 swallows the error by design. Check your browser's Network tab to see
-whether the `graph.json` request succeeded and what it returned. See
-[[Under the Hood]] for how `graph.json` is assembled and where it could
-go missing.
+whether the `graph.json` request succeeded and what it returned.
+
+There are also two independent, unrelated reasons the mini-panel
+specifically might not appear, even with a valid `graph.json`:
+
+- **No room for it.** The panel mounts into the right-margin TOC container
+  (`#quarto-margin-sidebar`, or the mkdocs-material equivalent). If the
+  page layout doesn't produce that container at all (`page-layout: full`,
+  `toc: false`, a non-HTML format like `revealjs`/`pdf`/`dashboard`, ...),
+  the panel has nowhere to mount and does nothing — no special-casing per
+  layout keyword, just a runtime check for whether the container exists.
+- **Turned off by config.** Independent of whether the container exists,
+  `quarto-graph: sidebar: false` (project-wide or per-page) skips the
+  panel by choice — see "Configuring the sidebar mini-panel" above.

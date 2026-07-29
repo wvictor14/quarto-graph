@@ -88,6 +88,23 @@ def test_run_prerender_sidebar_depth_override(tmp_path):
     assert payload["pages"]["Home.md"]["sidebar"] == {"enabled": True, "depth": 3}
 
 
+def test_run_prerender_real_project_honors_render_list_negation(tmp_path):
+    _write(tmp_path, "_quarto.yml", 'project:\n  type: default\n  render:\n    - "*.qmd"\n    - "!drafts/"\n')
+    _write(tmp_path, "Home.qmd", "content\n")
+    _write(tmp_path, "drafts/Secret.qmd", "content\n")
+    payload = run_prerender(tmp_path)
+    assert set(payload["pages"]) == {"Home.qmd"}
+
+
+def test_run_prerender_exclude_config_is_full_opt_out(tmp_path):
+    _write(tmp_path, "_quarto.yml", "project:\n  type: default\nquarto-graph:\n  exclude:\n    - archive/\n")
+    _write(tmp_path, "Home.qmd", "See [[Old]].\n")
+    _write(tmp_path, "archive/Old.qmd", "content\n")
+    payload = run_prerender(tmp_path)
+    assert set(payload["pages"]) == {"Home.qmd"}
+    assert payload["registry"] == {"home": "Home.qmd"}
+
+
 def test_run_prerender_scans_whole_project_regardless_of_a_partial_render(project):
     # Confirmed empirically: QUARTO_PROJECT_INPUT_FILES lists only the
     # file(s) in *this* render invocation -- empty on a `quarto preview`

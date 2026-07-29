@@ -37,5 +37,5 @@ The backlinks section is injected at render time by a Pandoc Lua filter. It's ne
 ## Backlinks
 
 - [The Graph Widget](../the-graph-widget/index.qmd)
-- [quarto-graph](../index.qmd)
+- [quarto-graph](../../index.qmd)
 ```

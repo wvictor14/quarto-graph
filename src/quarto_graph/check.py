@@ -1,10 +1,12 @@
 """Live-diagnostics scan: report unresolved wikilinks without writing any
 output files.
 
-Standalone page discovery (glob-based, via core.discover_paths) since
-editor tooling runs outside a live Quarto render and has no
-QUARTO_PROJECT_INPUT_FILES to read (that's only handed to prerender.py by
-Quarto itself, mid-render).
+Standalone page discovery (core.discover_paths) since editor tooling runs
+outside a live Quarto render and has no QUARTO_PROJECT_INPUT_FILES to read
+(that's only handed to prerender.py by Quarto itself, mid-render).
+discover_paths shells out to `quarto inspect` whenever project_root has a
+_quarto.yml/_quarto.yaml, so the `quarto` CLI must be on PATH for a real
+project; only a bare folder of notes with no project file skips it.
 """
 
 from pathlib import Path
