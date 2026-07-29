@@ -47,4 +47,3 @@ and concept for a long time.*
 - **[[The Graph Widget]]**: the full graph view and the sidebar mini-panel
 - **[[CLI]]**: `quarto-graph check`, for editor tooling and CI
 - **[[Limitations]]**: what's not supported yet
-- **[[Under the Hood]]**: the resolution pipeline, for when something goes wrong

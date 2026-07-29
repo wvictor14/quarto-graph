@@ -25,9 +25,9 @@ link, in scan order:
 ```
 
 No files are written, and no other side effects happen. This is why it's
-separate from the render pipeline in [[Under the Hood]]: an editor or CI
-job can call `check` at any time, without triggering `quarto render` or a
-full Python/Lua pass.
+separate from `quarto render`'s own pre-render/render/post-render passes:
+an editor or CI job can call `check` at any time, without triggering
+`quarto render` or a full Python/Lua pass.
 
 Page discovery is the same logic the pre-render pass uses: `quarto
 inspect` when `project_dir` has a `_quarto.yml`/`_quarto.yaml`, falling
@@ -45,4 +45,12 @@ different consumers:
 | What it does | Prints JSON, exits normally | Fails the build |
 | Who calls it | An editor, a CI lint step | `quarto render` itself |
 
-See [[Under the Hood]] for enabling `--strict`.
+## Enabling `--strict`
+
+The default `pre-render` line in `_extension.yml` (just `prerender.py`) is
+auto-resolved by Quarto to wherever the extension got installed, so it
+can't carry extra arguments. To enable `--strict`, replace that line with
+an explicit command pointing at its real path, e.g. `python3
+_extensions/wvictor14/quarto-graph/prerender.py --strict` if you installed
+via `quarto add wvictor14/quarto-graph` — check your `_extensions/` folder
+for the exact path if you installed it differently.

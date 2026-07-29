@@ -102,7 +102,7 @@ WARNING: unresolved wikilink [[This Page Does Not Exist Anywhere]] in wikilinks-
 
 To make broken links fail the *build* instead of just warning, pass
 `--strict` to the pre-render script (edit the `pre-render` line in
-`_extensions/quarto-graph/_extension.yml`); see [[Under the Hood]].
+`_extensions/quarto-graph/_extension.yml`); see [[CLI]].
 
 ## Excluding a page from the graph entirely
 
@@ -121,8 +121,11 @@ quarto-graph:
 
 A trailing `/` excludes a directory and everything under it; anything else
 is a plain glob. This is quarto-graph's own list, independent of whether
-Quarto itself renders the page. See [[Under the Hood]] for how it composes
-with Quarto's own `project: render:` scope.
+Quarto itself renders the page: it's applied on top of the base file list,
+which for a real Quarto project is Quarto's own fully-resolved `quarto
+inspect` output (respecting a project's `project: render:` globs and
+Quarto's default exclusions already), or a plain recursive scan for a bare
+folder with no `_quarto.yml`.
 
 ## Plain Markdown links resolve too, but differently
 
