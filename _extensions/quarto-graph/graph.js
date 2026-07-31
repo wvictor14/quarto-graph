@@ -5,8 +5,10 @@
  *     (".quarto-graph-full" elements), each independently sized/filtered
  *     via its own data-* attributes (see full-graph.lua)
  *   - a local N-hop mini graph at the top of the right sidebar on every
- *     other page that appears in the graph (N from the page's resolved
- *     `quarto-graph: sidebar: depth:` config, default 1)
+ *     page that appears in the graph (N from the page's resolved
+ *     `quarto-graph: sidebar: depth:` config, default 1), independent of
+ *     whether that page also has a full-graph widget, unless the sidebar
+ *     is explicitly disabled via `quarto-graph: sidebar: false`
  *
  * Self-contained vanilla JS + canvas: no external requests, works under any
  * path prefix (base URL is derived from this script's own src).
@@ -78,9 +80,13 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !data.nodes || !data.nodes.length) return;
-        if (fulls.length) {
-          for (var i = 0; i < fulls.length; i++) mountFullGraph(fulls[i], data);
-        } else {
+        for (var i = 0; i < fulls.length; i++) mountFullGraph(fulls[i], data);
+        // The mini-panel is independent of any full-graph widget on the
+        // page -- both render together unless the sidebar is explicitly
+        // disabled (checked here, not just at the pre-fetch short-circuit
+        // above, since that one only fires when there's no full widget
+        // either).
+        if (!document.querySelector('meta[name="quarto-graph-sidebar"][content="false"]')) {
           var depthMeta = document.querySelector('meta[name="quarto-graph-sidebar-depth"]');
           var depth = depthMeta ? Math.max(1, parseInt(depthMeta.content, 10) || 1) : 1;
           mountLocalPanel(data, findCurrent(data), depth);

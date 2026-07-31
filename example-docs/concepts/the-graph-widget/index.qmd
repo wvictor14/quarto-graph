@@ -4,24 +4,17 @@ type: concept
 order: 20
 ---
 
-Two views of the same data, both reading the same `graph.json`:
+The graph widget can be added to any page in two forms:
 
 - **Full graph view**: place the `{{{< quarto-graph-full >}}}` shortcode
-  on any page you choose (this project puts it on [[Graph]] (`[[Graph]]`)) to show every
-  page as a node and every resolved wikilink, or plain Markdown link
-  between two project pages, as an edge. Drag nodes, scroll to zoom, click
+  on any page you choose, this page for an example: [[Graph]].  This view shows every page by default. Drag nodes, scroll to zoom, click
   a node to open that page. Multiple instances on one page are fine, each
   with its own params. See [Customizing the full graph widget](#customizing-the-full-graph-widget).
-- **Sidebar mini-panel**: on every page, a small N-hop subgraph (the
-  current page plus everything within N links of it; 1-hop by default)
+- **Sidebar mini-panel**: on every page, a small N-depth subgraph (the
+  current page plus everything within N links of it; 1-depth by default)
   mounts at the top of the right-hand TOC sidebar. Clicking it opens a
-  larger modal version of the same subgraph.
-
-Both are drawn by the same client-side canvas widget
-(`_extensions/quarto-graph/graph.js`). The browser fetches `graph.json`
-once per page load and runs a force-directed layout (repulsion between all
-nodes, springs along edges, gentle centering gravity) until it settles,
-then stops the animation loop entirely until you interact with it again.
+  larger modal version of the same subgraph. Shows alongside the full
+  graph view too, if a page has both.
 
 ## What graph.json looks like
 
@@ -51,8 +44,7 @@ after the whole project has rendered, not up front.
 
 ## Node color
 
-Each node's color comes from its page's `type:` frontmatter (see
-[[Getting Started]]). The mapping is:
+Each node's color comes from its page's `type:` frontmatter. The mapping is:
 
 | Type | Color |
 |------|-------|
@@ -91,9 +83,7 @@ whole graph.
 ## Configuring the sidebar mini-panel
 
 The full graph view is always opt-in, placed by the `{{{< quarto-graph-full >}}}`
-shortcode. The sidebar mini-panel is on by default everywhere else, 1-hop
-from the current page, but both whether it shows and how many hops it
-reaches can be changed, globally or per page.
+shortcode. The sidebar mini-panel opt-out by default,  meaning unless explicitly configured off, every page will show a 1-depth graph of the current page.
 
 Global default, in `_quarto.yml`:
 
@@ -134,33 +124,4 @@ just `depth:` keeps the project's `enabled`, and vice versa.
 | `false` | `true` | yes, depth 1 |
 | `{enabled: true, depth: 2}` | `{depth: 3}` | yes, depth 3 |
 
-A page with the panel turned off skips fetching `graph.json` entirely, not
-just skips drawing it. The full graph view is unaffected either way, since
-it isn't governed by this key at all.
-
-## If the widget doesn't show up
-
-The widget is built as progressive enhancement: if `graph.json` fails to
-fetch or fails to parse, the widget does nothing silently. No console
-errors, no warning on the page. The browser's fetch call is:
-
-```javascript
-fetch(base + "graph.json")
-```
-
-If it fails (404, network error, JSON parse error), the `.catch` block
-swallows the error by design. Check your browser's Network tab to see
-whether the `graph.json` request succeeded and what it returned.
-
-There are also two independent, unrelated reasons the mini-panel
-specifically might not appear, even with a valid `graph.json`:
-
-- **No room for it.** The panel mounts into the right-margin TOC container
-  (`#quarto-margin-sidebar`, or the mkdocs-material equivalent). If the
-  page layout doesn't produce that container at all (`page-layout: full`,
-  `toc: false`, a non-HTML format like `revealjs`/`pdf`/`dashboard`, ...),
-  the panel has nowhere to mount and does nothing — no special-casing per
-  layout keyword, just a runtime check for whether the container exists.
-- **Turned off by config.** Independent of whether the container exists,
-  `quarto-graph: sidebar: false` (project-wide or per-page) skips the
-  panel by choice — see "Configuring the sidebar mini-panel" above.
+If the page has no sidebar, meaning TOC is set tofalse, or using a custom layout, the sidebar minipanel will not display.

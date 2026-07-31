@@ -32,34 +32,95 @@ filters:
 
 ## Using wikilinks
 
-Type `[[Home]]` to link to a page named "Home", without knowing its file path.
+Type `[[Home]]` to link to a page named "Home", without knowing its file path. 
+`quarto-graph` will replace the wikilink a link with the actual path and display text "Home".
 
-Give a page an alias with the `also-known-as` frontmatter key. For example, in
-`/index.qmd`:
+Here's an example,
 
-```markdown
----
-title: quarto-graph
-also-known-as: Home
----
-```
+Say you this somewhere in the contet of a page:
 
-Then link to it from any other page:
-
-*some-other-page/index.qmd*:
+`blog/a-very-interesting-blog-post.qmd`:
 
 ```markdown
 Go back to [[Home]] using this wikilink
 ```
 
-Regular markdown links work the same way. These are equivalent:
+And if somewhere else, you have another page with this as the following yaml
 
-- `[[Home]]`
-- `[Home](index.qmd)`
+`somewhere/deep/in/your/project/index.qmd`:
 
-See [[Wikilinks and Aliases]] for the full linking syntax.
+```markdown
+---
+title: Home
+---
+```
+
+Then, in the rendered webpage, `[[Home]]` will be replaced with a link 
+
+`[Home](somewhere/deep/in/your/project/index.html)`
+
+In a nutshell, wikilinks allows you to link pages, without needing know 
+the actual path of each page!
+
+This means, _**you can move pages without worring about updating links**_.
+
+And, by building and tracking connections between pages, this allows us 
+`quarto-graph` to offer some other cool functionality that I will go over in the
+next sections.
+
+## Graphs in your website
+
+`quarto-graph` makes connections available at runtime. These connections can be
+visualized as a graph. This extension provides a graph widget that can be 
+inserted as a shortcode:
+
+`{{{< quarto-graph-full >}}}` will reproduce a graph of your entire website:
+
+{{< quarto-graph-full >}}
+
+Click on the nodes in the graph, and they will take you to those pages. 
+
+In the graph, *nodes* (the circles) represent pages; they are labelled with
+their title. *Edges*, the lines that connect each node, are explicit connections 
+defined with Wikilinks and regular markdown links.
+
+This *graph-based* perspective of pages, comes from the world of wikis and 
+note-taking apps[^1], builds visual  intuition of connected ideas. `quarto-graph` 
+brings this concept to quarto websites.
+
+See [[The Graph Widget]] for more about the graph widget, how to embed it in
+pages, and how to customize it.
+
+[^1]: For other implementations of wikilinks, see Foam and Quartz. <!--- note to self, check references, revise for accuracy -->
+
+## Backlinks
+
+Because connections are available, `quarto-graph` allows you to explicitly tell 
+readers which pages are connected to the currently viewed page, using 
+*Backlinks*.
+
+*Example*: `Page A` and `Page B` both have links to `Page C`. With backlinks enabled, page
+C, will have a Backlinks sections appended to the end of it's page, with links 
+to pages A and B. 
+
+For an example, see the bottom of this page for its own backlinks.
+
+See [[Backlinks]] for more details.
+
+## Frontmatter reference
+
+<!--- consider removing / moving this to a more comprehensive section under Reference --->
+
+| Key | Purpose |
+|---|---|
+| `title:` | Page title, and the link text shown when a wikilink has no `\|display` override |
+| `type:` | Colors the node in the graph widget: `concept`, `person`, `reference`, `project`, `experiment`, `moc`; anything else (or omitted) falls back to gray |
+| `also-known-as:` | Extra names this page's wikilinks can be reached by, on top of its filename. A separate key from Quarto's own `aliases:`; see [[Wikilinks and Aliases]] for why |
+| `quarto-graph:` | Per-page override of the sidebar mini-panel (`sidebar: true/false`, or `sidebar: {enabled, depth}`); see [[The Graph Widget]] |
 
 ### Display text and anchors
+
+<!---- consider removing / moving this --->
 
 Add `|` to show custom link text instead of the target's title:
 
@@ -72,33 +133,3 @@ Link to a heading with `#`:
 Combine both:
 
 `[[Home#Installation|see install steps]]`
-
-## Graphs in your website
-
-Once pages are connected, embed a graph and get backlinks automatically.
-
-Insert the graph widget as a shortcode:
-
-`{{{< quarto-graph-full >}}}`
-
-{{< quarto-graph-full >}}
-
-Any page with incoming wikilinks or markdown links gets a "Backlinks" section
-appended automatically. No shortcode needed.
-
-See [[The Graph Widget]] for more about the graph widget, how to embed it in
-pages, and how to customize it.
-
-## Render
-
-The approach this extension takes is to resolve links at render time. Nothing
-rewrites your `.qmd` source files.
-
-## Frontmatter reference
-
-| Key | Purpose |
-|---|---|
-| `title:` | Page title, and the link text shown when a wikilink has no `\|display` override |
-| `type:` | Colors the node in the graph widget: `concept`, `person`, `reference`, `project`, `experiment`, `moc`; anything else (or omitted) falls back to gray |
-| `also-known-as:` | Extra names this page's wikilinks can be reached by, on top of its filename. A separate key from Quarto's own `aliases:`; see [[Wikilinks and Aliases]] for why |
-| `quarto-graph:` | Per-page override of the sidebar mini-panel (`sidebar: true/false`, or `sidebar: {enabled, depth}`); see [[The Graph Widget]] |

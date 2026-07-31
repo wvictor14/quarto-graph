@@ -13,6 +13,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path, PurePosixPath
 
 import yaml
@@ -218,16 +219,35 @@ def discover_paths(project_root, project_config=None):
     config_path = _quarto_project_config_path(project_root)
     if config_path is not None:
         resolved_root = project_root.resolve()
-        try:
-            result = subprocess.run(
-                ["quarto", "inspect", str(resolved_root)],
-                capture_output=True, text=True, check=True,
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        # `quarto preview` can fire more than one render for the same page in
+        # quick succession (e.g. a double GET), each spawning its own `quarto
+        # inspect` here concurrently. They race on Quarto's shared `.quarto`
+        # cache dir and one occasionally exits 1 -- retry once before giving
+        # up, since the very next call normally succeeds.
+        exc = None
+        for attempt in range(2):
+            try:
+                result = subprocess.run(
+                    ["quarto", "inspect", str(resolved_root)],
+                    capture_output=True, text=True, check=True,
+                )
+                exc = None
+                break
+            except subprocess.CalledProcessError as e:
+                exc = e
+                if attempt == 0:
+                    time.sleep(0.5)
+            except FileNotFoundError as e:
+                exc = e
+                break
+        if exc is not None:
+            stderr = exc.stderr.strip() if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else ""
             raise RuntimeError(
                 "quarto-graph needs the `quarto` CLI to inspect {} (it has a "
                 "_quarto.yml/_quarto.yaml). Install Quarto, or run against a "
-                "plain folder with no project file.".format(project_root)
+                "plain folder with no project file.{}".format(
+                    project_root, "\n" + stderr if stderr else ""
+                )
             ) from exc
         paths = {
             project_root / Path(f).relative_to(resolved_root)

@@ -5,45 +5,30 @@ type: moc
 
 `quarto-graph` enables using **Wikilinks** in a quarto website, where pages are
 connected via links. Wikilinks can expediate knowledge discovery, because 
-connections can be explicitly visualized in a graph. This site itself was built
-with `quarto-graph`.
+connections can be explicitly captured and presented to your audience. This site itself was built with `quarto-graph`.
 
-`quarto-graph` doesn't rewrite your `.qmd` files, generate pages, or replace
-Quarto's own project structure — it only resolves links and draws a graph
-at render time. See [[Limitations]] for what it doesn't do yet.
+This project was heavily inspired by [Obsidian](https://obsidian.md/help/), a note-taking app that lets you visualize your personal notes as a giant graph. Wikilinks, or more generally analyzing connected concepts using graphs, have a long history in various domains [^examples]. `quarto-graph`'s goal is bringing this feature to your quarto-powered websites.
 
-Click on a node, which is a link to a specific page of this website.
+[^examples]: [Connected Papers](https://www.connectedpapers.com/) is a website that lets you explore connected papers using graphs. [Six Degrees of Wikipedia](https://www.sixdegreesofwikipedia.com/) allows you to explore wikipedia by finding the shortest path between pages.
+
+`quarto-graph` grants powerful navigational features. For example, with [[The Graph Widget]], users can see how different pages are connected in a graph, and they can click on a node, which will take them to that specific page.
 
 {{< quarto-graph-full >}}
 
-Connections, the *edges* that connect each *node* in a graph, are automatically 
-determined by a few simple rules:
+In the graph,
 
 - All pages are *nodes*
-- Connections between are explicitly determined using double square brackets e.g.
+- Connections are pages that link to the current page, or that link from current page to other pages. Links can either be Wikilinks using the square brackets syntax e.g. `[[Getting Started]]`, or regular markdown links e.g. [`[Getting Started](getting-started/index.qmd)`](getting-started/index.qmd).
 
-`[[Getting Started]]`
-
-Where the inside text, can be an alias that you give a particular page. Which is
-specified in the page's frontmatter.
-
-Or you can use a regular markdown link
-
-[`[Getting Started](getting-started/index.qmd)`](getting-started/index.qmd)
-
-
-In addition to the graph widget shown above, wikilinks allow us to auto-generate 
+In addition to the graph widget, wikilinks allow us to auto-generate 
 [[Backlinks]], scroll to the end of this page to see all the pages that 
 reference the current page.
 
-*This project is inspired by Obisidian Graph's, but wikilinks have been a feature
-and concept for a long time.*
-
 ## Start here
 
-- **[[Getting Started]]**: install it, a few lines in `_quarto.yml`
-- **[[Wikilinks and Aliases]]**: the linking syntax and how links get resolved
-- **[[Backlinks]]**: the "pages that link here" section, injected live at runtime
-- **[[The Graph Widget]]**: the full graph view and the sidebar mini-panel
+- **[[Getting Started]]**
+- **[[Wikilinks and Aliases]]**: syntax and how links get resolved
+- **[[Backlinks]]**: the "pages that link here" section
+- **[[The Graph Widget]]**
 - **[[CLI]]**: `quarto-graph check`, for editor tooling and CI
 - **[[Limitations]]**: what's not supported yet

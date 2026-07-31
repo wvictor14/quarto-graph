@@ -17,100 +17,89 @@ Optional pieces can be added:
 - **Heading link**: `[[Getting Started#5. Render]]` links to the
   `## 5. Render` heading within that page. Combine with display text:
   `[[Getting Started#5. Render|the render step]]`.
-- **Case insensitivity**: matching against the registry ignores case, so
-  `[[getting STARTED]]` resolves the same as the canonical form.
 
-## How targets resolve to pages
+**Case insensitivity**: matching against the registry ignores case, so
+  `[[getting STARTED]]` resolves the same as `[[Getting Started]]`.
 
-A pre-render pass scans every page in the project once, before any page
-renders, and builds a registry of link targets. Each page contributes:
+## Aliases
 
-- its `title:` frontmatter (or its folder-path identifier, if no title is
-  set — see below)
-- its folder-path identifier: the bare filename stem, with folder and
-  extension stripped, for a normal page — but for an `index.qmd`, that's the
-  name of the folder it's *in*, not the word "index". A page at
-  `page1/index.qmd` is a folder note, the same way Obsidian's folder-note
-  plugins and Quartz treat it: it *is* `page1`, so `[[page1]]` resolves to
-  it directly. The bare word `index` itself is never a usable target — every
-  folder's `index.qmd` would otherwise "collide" on it, which isn't a real
-  ambiguity — except for the project's own top-level `index.qmd`, the one
-  page where "index" is unique by construction.
-- progressively longer folder-qualified forms of both the above: `[[api]]`,
-  and if that's ambiguous, `[[docs/api]]`, `[[project/docs/api]]`, and so on
-  up to the page's full path. This is also how an explicit `index` suffix
-  keeps working if you'd rather spell it out: `[[page1/index]]` resolves the
-  same page as `[[page1]]`.
-- each name listed under `also-known-as:` in its frontmatter (a single
-  string or a list of strings) — these are exact-match only, not
-  folder-qualified, since they're already a deliberately-chosen unique name.
-
-All of these are lowercased before being stored, which is what makes lookups
-case-insensitive.
-
-Note that `also-known-as:` is a quarto-graph-specific key, distinct from
-Quarto's built-in `aliases:` (which is for redirect URLs, not link
-resolution).
-
-For example, [[Getting Started]] has this frontmatter:
+As mentiong in [[Getting Started]], you can use a Wikilink to reference the 
+`title` of a page, which is defined in the frontmatter. For example 
+`[[A blog post about the Uranus]]`, will resolve to any page with this yaml 
+frontmatter:
 
 ```yaml
 ---
-title: Getting Started
+title: A blog post about the Uranus
 ---
 ```
 
-which registers it under both `Getting Started` (title) and
-`getting-started` (stem). Adding an `also-known-as:` list would register
-more names for the same page:
+You could also reference this page if you gave it an *alias* with the 
+`also-known-as` frontmatter key. 
+
+Say you want to refer to it as `[[uranus-post]]`, then you could add:
+
+`blog/uranus.qmd`:
 
 ```yaml
 ---
-title: Getting Started
-also-known-as:
-  - Setup
-  - Installation
+title: A blog post about the Uranus
+also-known-as: uranus-post
 ---
 ```
 
-After that, `[[Setup]]` and `[[Installation]]` would resolve to this same
-page too.
+Now, you can link to this page `blog/uranus.qmd` with either:
 
-Full-path targets (a folder name followed by a page name) also resolve —
-see "Clashing names" below. See [[Limitations]] for other current gaps
-(embeds, inline-code-span safety).
+- `[[A blog post about the Uranus]]`
+- `[[uranus-post]]`
 
-## What "resolves" actually means
+Note case-insentivity applies to both title and alias keys when building 
+connections. 
 
-At each page's own render time, a Pandoc Lua filter looks up every
-bracketed wikilink against that registry:
+## Conflicts
 
-- **Found** → rewritten to a real link, and an edge is recorded for
-  [[The Graph Widget]].
-- **Not found** → left as plain, unlinked text (brackets included), and a
-  warning is printed. Nothing else happens.
+If pages have the same title, how does `quarto-graph` resolve them?
 
-That second case is worth being explicit about: **a wikilink to a page
-that doesn't exist does not create that page.** The registry is built once,
-up front, only from pages already in the project. For example, this
-paragraph links to [[This Page Does Not Exist Anywhere]], which isn't a
-real page. It renders as inert text, and the build prints:
+`quarto-graph` takes the first one that's registered and prints:
 
 ```
-WARNING: unresolved wikilink [[This Page Does Not Exist Anywhere]] in wikilinks-and-aliases/index.qmd
+WARNING: duplicate link target 'name' (first-page.qmd vs second-page.qmd); keeping first-page.qmd
 ```
 
-To make broken links fail the *build* instead of just warning, pass
-`--strict` to the pre-render script (edit the `pre-render` line in
-`_extensions/quarto-graph/_extension.yml`); see [[CLI]].
+One way to avoid conflicts is to use Aliases, as described above. Another is by 
+qualifying the target with enough of its own folder path to be unique:
 
-## Excluding a page from the graph entirely
+- `[[docs/api]]`
+- `[[vendor/api]]`
 
-A project-wide `quarto-graph: exclude:` list in `_quarto.yml` removes
-matching pages from the registry before it's built, a full opt-out, not
-just hiding a node from [[The Graph Widget]]'s drawing. An excluded page is
-never scanned, and a `[[wikilink]]` pointing at it comes back **unresolved**,
-the same as a typo:
+Note that because aliases are already a deliberately chosen unique name, aliases 
+don't get this same treatment.
+
+## How connections are resolved
+
+`quarto-graph` relies on `quarto inspect` to generate the pages of the rendered
+website, without actually rendering the website. That means, `quarto-graph` is
+subject to the Quarto's behaviour on render targets. <!--- add link to quarto relevant page --->
+
+This means:
+
+- Any `qmd`/`md` page that is not `README.(q)md`, `CLAUDE.md`, or `AGENTS.md`. 
+This is to be consistent with Quarto's render targets behaviour <!--- add link to quarto docs --->
+- Targets that are ignored / excluded under `_quarto.yml` are also excluded from 
+the graph (I guess that's expected behaviour? maybe this is a dev note). 
+
+If a page links to a page that doesn't exist, a warning will be emitted at render[^2]:
+
+```sh
+WARNING: unresolved wikilink [[THIS IS AN EXAMPLE]] in link/to/offending/page.md
+```
+
+[^2]: To make broken links fail the *build* instead of just warning, pass
+`--strict` to the pre-render script; see [[CLI]]. <!--- we need to convert this to yaml option --->
+
+## Excludes
+
+To exclude additional pages in the graph widget and backlinks, one can use the `exclude` key in `_quarto.yml`:
 
 ```yaml
 quarto-graph:
@@ -119,53 +108,8 @@ quarto-graph:
     - "*.draft.qmd"  # glob pattern, matched against each page's project-relative path
 ```
 
-A trailing `/` excludes a directory and everything under it; anything else
-is a plain glob. This is quarto-graph's own list, independent of whether
-Quarto itself renders the page: it's applied on top of the base file list,
-which for a real Quarto project is Quarto's own fully-resolved `quarto
-inspect` output (respecting a project's `project: render:` globs and
-Quarto's default exclusions already), or a plain recursive scan for a bare
-folder with no `_quarto.yml`.
+## Index.qmd
 
-## Plain Markdown links resolve too, but differently
+Quarto by default encourages use of `index.qmd` to act as landing pages / MOCs. 
 
-A normal Markdown link, `[text](other.qmd)`, is also treated as an edge and
-a backlink source, not just `[[wikilinks]]`. See [[Backlinks]] and
-[[The Graph Widget]].
-
-The resolution mechanism is different, though: a Markdown link resolves by
-*path*, not by registry name lookup. The href is resolved relative to the
-linking page's own path (or from the project root, for a leading `/`), and
-must land on another page's real project path. That means none of the
-wikilink conveniences apply:
-
-- no case-insensitivity — the path has to match exactly
-- no `also-known-as:` names — only the page's actual path resolves
-- no heading-anchor slug rewriting — a `#fragment` is stripped and ignored,
-  not resolved
-- no display-text syntax — the link text is whatever you already wrote
-
-An external URL, a protocol-relative href, or a path that doesn't match any
-project page is left alone entirely. Unlike an unresolved wikilink, this
-doesn't print a warning — a Markdown link to an asset, an external site, or
-a typo'd path isn't necessarily a mistake. See [[Limitations]].
-
-## Clashing names
-
-If two pages register the same target name (two files sharing a stem in
-different folders, two `index.qmd` pages sharing a folder name, two pages
-with the same `also-known-as:`, and so on), the registry keeps only the
-first one registered and prints:
-
-```
-WARNING: duplicate link target 'name' (first-page.qmd vs second-page.qmd); keeping first-page.qmd
-```
-
-A bare wikilink to that name always resolves to whichever page was kept —
-but the other page is still reachable, by qualifying the target with enough
-of its own folder path to be unique: `[[docs/api]]`,
-`[[vendor/api]]`, or, for a folder note specifically, the fully spelled-out
-`[[docs/api/index]]`. This applies to a `title:` collision too, not just a
-stem or folder-name one. `also-known-as:` names don't get this treatment —
-they're already a deliberately-chosen unique name, so give the other page
-one of those instead if you'd rather not qualify the path.
+These pages are treated by taking the stem <!--- expand more on this ---->
