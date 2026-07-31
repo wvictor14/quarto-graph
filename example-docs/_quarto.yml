@@ -21,8 +21,11 @@ website:
       - section: "Reference"
         contents:
           - reference/cli/index.qmd
+          - news/index.qmd
           - reference/limitations/index.qmd
       - graph/index.qmd
+  page-footer:
+    center: "quarto-graph v0.3.0"
 
 format:
   html:

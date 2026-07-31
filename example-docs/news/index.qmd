@@ -1,0 +1,25 @@
+---
+title: News
+order: 50
+type: reference
+---
+
+## 0.3.0
+
+- Added `quarto-graph: exclude:` project config: a full opt-out for pages
+  that shouldn't participate in the wikilink graph at all (excluded pages
+  can't be linked to, resolve as unresolved wikilinks).
+- File discovery now delegates to `quarto inspect` for real Quarto
+  projects, matching Quarto's own render scope (`project: render:`
+  glob/negation list, default exclusions) instead of re-implementing it.
+- Reorganized and rewrote the docs site.
+
+## 0.2.0
+
+- Fixed wikilink path resolution to use relative paths.
+- `index.qmd` pages now default their link target to the parent
+  path/folder/tree, instead of requiring an explicit target.
+
+## 0.1.2
+
+- Initial tagged release.

@@ -31,4 +31,5 @@ reference the current page.
 - **[[Backlinks]]**: the "pages that link here" section
 - **[[The Graph Widget]]**
 - **[[CLI]]**: `quarto-graph check`, for editor tooling and CI
+- **[[News]]**: version history
 - **[[Limitations]]**: what's not supported yet
