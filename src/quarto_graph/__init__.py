@@ -2,4 +2,6 @@
 Quarto extension's batch build and any editor tooling built on top of it.
 """
 
-__version__ = "0.1.1"
+from importlib.metadata import version
+
+__version__ = version("quarto-graph")
