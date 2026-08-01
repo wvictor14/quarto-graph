@@ -4,33 +4,22 @@ type: reference
 order: 90
 ---
 
-Not currently supported. None of these are structural, just not built
-yet.
+## Embeds 
 
-## Embeds aren't transcluded
-
-Obsidian's embed syntax (a `!` before the double brackets, embedding
-another note or an image inline) is not specially handled. The wikilink
-pattern matches the bracketed part regardless of a leading `!`, so an
-embed of a real page becomes a broken image tag pointing at that page's
-URL: a page, rendered as if it were an image, which fails to
-load. An embed of a target that doesn't exist is just another unresolved
-wikilink warning, same as [[Wikilinks and Aliases|any other dangling link]].
-
-## Inline code spans
-
-A real single-backtick code span like `` `[[literal example]]` `` renders
-correctly. It stays as plain code text in the page, not a broken link, and
-the pre-render scan skips it the same way it skips fenced code blocks, so
-no spurious unresolved-wikilink warning is printed either.
+Obsidian has an embed syntax (a `!` before the double brackets, embedding
+another note or an image inline) is not specially handled. 
 
 ## A wikilink immediately followed by `:`
 
 `[[Target]]:` at the very start of a line, most commonly a list item like
-`- [[Target]]: some description`, isn't a quarto-graph bug at all. Pandoc's
+`- [[Target]]: some description`. Pandoc's
 own Markdown reader parses `[Target]:` as a
 [link reference definition](https://spec.commonmark.org/0.31.2/#link-reference-definitions)
 before quarto-graph's filter ever runs, consuming the rest of the line as
 the link's destination and silently dropping that list item's visible
 text. Wrapping the wikilink in bold, `- **[[Target]]**: some description`,
 avoids it, since the line no longer starts with a bare `[`.
+
+## Quarto Preview sometimes doesn't work
+
+Not sure why, but errors sometimes when output-dir flag is used

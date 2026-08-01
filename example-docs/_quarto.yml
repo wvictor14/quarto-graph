@@ -1,5 +1,7 @@
 project:
-  type: quarto-graph
+  type: website
+  pre-render: quarto-graph prerender
+  post-render: quarto-graph postrender
 
 filters:
   - quarto-graph

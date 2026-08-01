@@ -20,11 +20,13 @@ uv add quarto-graph
 
 ## Add to `_quarto.yml`
 
-Set the project type to `quarto-graph` and add it to `filters`:
+Wire up the pre-render/post-render steps and add `quarto-graph` to `filters`:
 
 ```yaml
 project:
-  type: quarto-graph
+  type: website
+  pre-render: quarto-graph prerender
+  post-render: quarto-graph postrender
 
 filters:
   - quarto-graph
@@ -59,14 +61,13 @@ Then, in the rendered webpage, `[[Home]]` will be replaced with a link
 
 `[Home](somewhere/deep/in/your/project/index.html)`
 
-In a nutshell, wikilinks allows you to link pages, without needing know 
-the actual path of each page!
+In a nutshell, wikilinks link pages without needing to know the actual
+path of each page.
 
-This means, _**you can move pages without worring about updating links**_.
+_**You can move pages without updating any links.**_
 
-And, by building and tracking connections between pages, this allows us 
-`quarto-graph` to offer some other cool functionality that I will go over in the
-next sections.
+`quarto-graph` also tracks these connections between pages, which powers
+the graph and backlinks features covered in the next sections.
 
 ## Graphs in your website
 
@@ -95,9 +96,8 @@ pages, and how to customize it.
 
 ## Backlinks
 
-Because connections are available, `quarto-graph` allows you to explicitly tell 
-readers which pages are connected to the currently viewed page, using 
-*Backlinks*.
+`quarto-graph` uses these connections to tell readers which pages link to
+the one they're viewing, using *Backlinks*.
 
 *Example*: `Page A` and `Page B` both have links to `Page C`. With backlinks enabled, page
 C, will have a Backlinks sections appended to the end of it's page, with links 

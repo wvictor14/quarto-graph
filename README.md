@@ -3,8 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Quarto project-type extension: adds Obsidian-style `[[wikilinks]]`,
-backlinks, and an interactive graph view to a normal Quarto project. Ported
-from the sonomabio wiki's MkDocs-based graph widget.
+backlinks, and an interactive graph view to a normal Quarto project.
 
 ## Quick start
 
@@ -23,18 +22,20 @@ quarto add wvictor14/quarto-graph
 quarto preview example-docs
 ```
 
-To use in your own project: `quarto add` this extension, then add
-`project: {type: quarto-graph}` and `filters: [quarto-graph]` to your
-`_quarto.yml`. See `example-docs/` for the full syntax and frontmatter keys.
+To use in your own project: `quarto add` this extension, then add this to
+your `_quarto.yml`:
 
-## More
+```yaml
+project:
+  type: website
+  pre-render: quarto-graph prerender
+  post-render: quarto-graph postrender
 
-- [docs/adr/0001-non-destructive-render-time-resolution.md](docs/adr/0001-non-destructive-render-time-resolution.md)
-  — why resolution happens at render time via a Lua filter, not a batch
-  pre-generation step
-- [AGENTS.md](AGENTS.md) — terminology and scope boundaries, for anyone
-  (human or agent) working on this codebase
+filters:
+  - quarto-graph
+```
 
+See `example-docs/` for the full syntax and frontmatter keys.
 
 ## next steps
 
@@ -70,6 +71,7 @@ Optional nice to haves
 - [ ] vscode/positron extension that handles autocomplete? other features?
 - [ ] customize colors for the nodes
 
-Issues
 
-- [ ] Strict mode not accessible via extension at the moment (just cli)
+# Limitations
+
+Quarto preview with --output-dir (default command on positron "preview" function) errors.

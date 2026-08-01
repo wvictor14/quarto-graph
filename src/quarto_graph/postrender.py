@@ -1,10 +1,9 @@
 """Post-render pass: assemble graph.json from the pre-render registry and
 each page's own real rendered output path.
 
-Node URLs come from PAGES_DIR -- one small file per page, written by the
+Node URLs come from PAGES_DIR: one small file per page, written by the
 Lua filter during that page's own render from Quarto's own
-quarto.doc.output_file -- never predicted from a naming convention (see
-docs/adr/0001-non-destructive-render-time-resolution.md).
+quarto.doc.output_file. They're never guessed from a naming convention.
 """
 
 import json

@@ -4,9 +4,26 @@ order: 40
 type: reference
 ---
 
-`quarto-graph` installs one command, `check`, for editor and CI tooling
-that needs to know about unresolved wikilinks without running a full
-Quarto render.
+`quarto-graph` installs three commands: `prerender` and `postrender`, which
+a project's own `_quarto.yml` wires up as its `pre-render`/`post-render`
+steps, and `check`, for editor and CI tooling that needs to know about
+unresolved wikilinks without running a full Quarto render.
+
+## `quarto-graph prerender` / `quarto-graph postrender`
+
+```yaml
+project:
+  type: website
+  pre-render: quarto-graph prerender
+  post-render: quarto-graph postrender
+```
+
+`prerender` builds the wikilink/alias registry and backlink map across
+every page in the project, before any single page renders. `postrender`
+assembles `graph.json` from that registry and each page's own real
+rendered output path. Both run with the working directory already set to
+the project root (Quarto's own guarantee for `pre-render`/`post-render`
+commands), so neither takes a path argument.
 
 ## `quarto-graph check`
 
@@ -47,10 +64,10 @@ different consumers:
 
 ## Enabling `--strict`
 
-The default `pre-render` line in `_extension.yml` (just `prerender.py`) is
-auto-resolved by Quarto to wherever the extension got installed, so it
-can't carry extra arguments. To enable `--strict`, replace that line with
-an explicit command pointing at its real path, e.g. `python3
-_extensions/wvictor14/quarto-graph/prerender.py --strict` if you installed
-via `quarto add wvictor14/quarto-graph` — check your `_extensions/` folder
-for the exact path if you installed it differently.
+Since `pre-render` is a plain `quarto-graph prerender` command, `--strict`
+is just an extra argument:
+
+```yaml
+project:
+  pre-render: quarto-graph prerender --strict
+```

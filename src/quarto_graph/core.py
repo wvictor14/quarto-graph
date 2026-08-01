@@ -1,11 +1,10 @@
-"""Pure resolution logic: page parsing, wikilink/alias resolution.
+"""Page parsing and wikilink/alias resolution.
 
-No file writing here, no output-path computation — a resolved wikilink is a
-root-relative link to the target page's own source path, and Quarto's own
-project link rewriting turns that into the real final URL. Extracted so the
-pre-render pass, the Lua filter's Python-side counterpart data, and any
-future editor tooling share exactly one implementation of "what does this
-wikilink resolve to."
+Doesn't write files or work out output paths. A resolved wikilink is just a
+root-relative link to the target page's source path. Quarto rewrites that
+into the real URL when it renders. Kept in one place so the pre-render
+pass, the Lua filter's Python-side data, and any future editor tooling all
+agree on what a wikilink resolves to.
 """
 
 import fnmatch
@@ -30,9 +29,8 @@ FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
 INLINE_CODE_SPAN_RE = re.compile(r"`[^`\n]+`")
 
 # Side-channel files shared between prerender.py (writer), the Lua filter
-# (reader of REGISTRY_PATH, writer of one file per page under PAGES_DIR),
-# and postrender.py (reader of both) -- see
-# docs/adr/0001-non-destructive-render-time-resolution.md.
+# (reads REGISTRY_PATH, writes one file per page under PAGES_DIR), and
+# postrender.py (reads both). This keeps the source .qmd files untouched.
 REGISTRY_PATH = Path(".quarto") / "quarto-graph" / "registry.json"
 PAGES_DIR = Path(".quarto") / "quarto-graph" / "pages"
 
@@ -109,18 +107,18 @@ def find_wikilinks_outside_fences(text):
 def find_markdown_links_outside_fences(text):
     """Locate every MARKDOWN_LINK_RE match (plain `[text](href)`, not image
     syntax) outside fenced code blocks, returning (line, col, match) triples
-    with 1-indexed positions -- same contract as find_wikilinks_outside_fences,
-    used by build_backlinks to also treat internal Markdown links as edges."""
+    with 1-indexed positions. Same contract as find_wikilinks_outside_fences.
+    Used by build_backlinks to also treat internal Markdown links as edges."""
     return _find_pattern_outside_fences(text, MARKDOWN_LINK_RE)
 
 
 def resolve_markdown_href(source_rel, href):
     """Resolve a Markdown link href against the linking page's own rel path
-    to a project-root-relative PurePosixPath, or None if it isn't a plain
-    internal path -- an external URL (any '<scheme>:'), a protocol-relative
-    href ('//host/...'), or a fragment/query-only href. `.`/`..` segments are
-    collapsed; a leading '/' is root-relative to the project, otherwise
-    relative to source_rel's own directory."""
+    to a project-root-relative PurePosixPath. Returns None if it isn't a
+    plain internal path: an external URL (any '<scheme>:'), a
+    protocol-relative href ('//host/...'), or a fragment/query-only href.
+    `.`/`..` segments are collapsed; a leading '/' is root-relative to the
+    project, otherwise relative to source_rel's own directory."""
     href = href.split("#", 1)[0].split("?", 1)[0]
     if not href or href.startswith("//") or URL_SCHEME_RE.match(href):
         return None
@@ -140,18 +138,18 @@ def resolve_markdown_href(source_rel, href):
     return PurePosixPath(*stack) if stack else None
 
 
-# Filenames Quarto never renders by default regardless of dot/underscore
-# prefixing (confirmed against Quarto 1.9.37) -- applied by hand in the
+# Filenames Quarto never renders by default, regardless of dot/underscore
+# prefixing (confirmed against Quarto 1.9.37). Applied by hand in the
 # no-project fallback branch of discover_paths, since there's no `quarto
-# inspect` to apply it for us there.
+# inspect` to do it for us there.
 DEFAULT_EXCLUDE_FILENAMES = {"README.md", "README.qmd", "CLAUDE.md", "AGENTS.md"}
 
 
 def _quarto_project_config_path(project_root):
     """The project's `_quarto.yml`/`_quarto.yaml` path, or None if neither
-    exists. Even a bare file with no `project:` key (only a `quarto-graph:`
-    block) is enough for Quarto to treat project_root as a real project
-    (confirmed empirically) -- so this same existence check both picks
+    exists. Even a bare file with no `project:` key, just a `quarto-graph:`
+    block, is enough for Quarto to treat project_root as a real project
+    (confirmed by testing). This same existence check picks
     discover_paths's discovery mechanism and gates read_project_config."""
     project_root = Path(project_root)
     yml = project_root / "_quarto.yml"
@@ -162,16 +160,12 @@ def _quarto_project_config_path(project_root):
 
 
 def _is_excluded(rel, patterns):
-    """True if `rel` (a project-relative PurePosixPath) matches any
-    `quarto-graph: exclude:` pattern. A trailing "/" pattern excludes that
-    directory and everything under it; anything else is matched via
-    fnmatch against the posix path string, case-sensitively regardless of
-    the host OS (fnmatchcase, not fnmatch -- plain fnmatch normalizes case
-    per os.path.normcase, which would make an exclude pattern's case
-    sensitivity depend on which OS runs quarto-graph). This is
-    quarto-graph's own minimal syntax, not a reimplementation of Quarto's
-    `render:` glob spec -- it's an exclude-only list, so no negation is
-    needed."""
+    """True if `rel` matches any `quarto-graph: exclude:` pattern. A
+    trailing "/" excludes that directory and everything under it;
+    anything else is matched with fnmatch against the posix path string.
+    Uses fnmatchcase, not fnmatch, so case sensitivity doesn't depend on
+    the host OS. This is quarto-graph's own small exclude-only syntax, not
+    a copy of Quarto's `render:` glob spec, so there's no negation."""
     rel_str = str(rel)
     for pattern in patterns:
         if pattern.endswith("/"):
@@ -184,36 +178,31 @@ def _is_excluded(rel, patterns):
 
 def discover_paths(project_root, project_config=None):
     """Every page quarto-graph treats as part of the project, minus this
-    project's own `quarto-graph: exclude:` patterns (full opt-out -- an
-    excluded page is never scanned, and a [[wikilink]] pointing at it comes
-    back unresolved, same as a typo).
+    project's own `quarto-graph: exclude:` patterns. Excluding a page is a
+    full opt-out: it's never scanned, and a [[wikilink]] pointing at it
+    comes back unresolved, same as a typo.
 
-    `project_config` lets a caller that already loaded `read_project_config`
-    (e.g. prerender.py, which also needs it for sidebar config) pass it in
-    directly instead of this function reading and YAML-parsing
-    `_quarto.yml` a second time. Defaults to loading it here for callers
-    (e.g. check.py) that only need the exclude list.
+    `project_config` lets a caller that already loaded
+    `read_project_config` (prerender.py, which also needs it for sidebar
+    config) pass it in directly, instead of parsing `_quarto.yml` again.
+    Callers that only need the exclude list (check.py) can skip it and let
+    this function load it.
 
-    Two discovery mechanisms, chosen by whether project_root is a declared
-    Quarto project (has a `_quarto.yml`/`_quarto.yaml`):
+    There are two ways to find pages, depending on whether project_root
+    has a `_quarto.yml`/`_quarto.yaml`:
 
-    - Real project: delegate to `quarto inspect`, whose `files.input` is
-      Quarto's own fully-resolved render list -- respects a custom
-      `project: render:` glob/negation list and Quarto's default
-      exclusions (dot/underscore paths, README.md/.qmd, CLAUDE.md,
-      AGENTS.md) exactly, with no glob-reimplementation risk (this project
-      already got burned once guessing at a Quarto convention -- see
-      docs/adr/0001-non-destructive-render-time-resolution.md; this is the
-      same lesson applied to render scope -- see
-      docs/adr/0004-delegate-file-discovery-to-quarto-inspect.md). Only
-      `.qmd`/`.md` entries are kept -- `quarto inspect` can also list
-      `.ipynb`/`.Rmd` render inputs, which this project's Markdown-only
-      frontmatter/wikilink parsing can't handle.
-    - No project file at all: `quarto inspect` refuses to run ("... is not
-      a Quarto project"), so fall back to a plain rglob scan with the same
-      default-exclusion set applied by hand. This is the only path
-      `quarto-graph check` needs when pointed at a bare folder of notes
-      that was never wrapped in a Quarto project.
+    - Real project: ask `quarto inspect` for `files.input`, Quarto's own
+      fully-resolved render list. This respects a custom `project:
+      render:` glob/negation list and Quarto's default exclusions
+      (dot/underscore paths, README, CLAUDE.md, AGENTS.md) exactly,
+      instead of reimplementing Quarto's glob rules and risking a
+      mismatch. Only `.qmd`/`.md` entries are kept; `quarto inspect` can
+      also list `.ipynb`/`.Rmd` files, which this project's Markdown-only
+      parsing can't handle.
+    - No project file: `quarto inspect` refuses to run, so this falls back
+      to a plain recursive scan with the same default exclusions applied
+      by hand. This is the path `quarto-graph check` uses for a bare
+      folder of notes that was never wrapped in a Quarto project.
     """
     project_root = Path(project_root)
     config_path = _quarto_project_config_path(project_root)
@@ -222,8 +211,8 @@ def discover_paths(project_root, project_config=None):
         # `quarto preview` can fire more than one render for the same page in
         # quick succession (e.g. a double GET), each spawning its own `quarto
         # inspect` here concurrently. They race on Quarto's shared `.quarto`
-        # cache dir and one occasionally exits 1 -- retry once before giving
-        # up, since the very next call normally succeeds.
+        # cache dir and one occasionally exits with an error. Retry once
+        # before giving up, since the next call normally succeeds.
         exc = None
         for attempt in range(2):
             try:
@@ -272,14 +261,14 @@ def discover_paths(project_root, project_config=None):
 
 
 def identifier_chain(rel):
-    """The path segments identifying a page for wikilink-registry purposes,
-    folding a trailing `index` stem into its containing folder -- an
+    """The path segments identifying a page for wikilink-registry purposes.
+    Folds a trailing `index` stem into its containing folder, since an
     `index.qmd` *is* its folder, the same way Obsidian folder-notes and
     Quartz treat it, rather than a separately-named page called "index".
 
     `a/b/c/index.qmd` -> ("a", "b", "c")
     `notes/Overview.qmd` -> ("notes", "Overview")
-    top-level `index.qmd` -> ("index",) -- nothing to fold into, and there's
+    top-level `index.qmd` -> ("index",). Nothing to fold into, and there's
     only ever one project-root page, so no collision risk.
     """
     parts = rel.parent.parts
@@ -324,9 +313,9 @@ def _coerce_depth(value, fallback):
 
 
 def _coerce_sidebar_config(value):
-    """Normalizes a raw `sidebar:` value -- the bare bool shorthand or an
-    `{enabled, depth}` mapping -- to a plain {"enabled": bool, "depth": int}
-    dict. depth floors at 1 (see CONTEXT.md's Depth entry); anything
+    """Normalizes a raw `sidebar:` value, the bare bool shorthand or an
+    `{enabled, depth}` mapping, to a plain {"enabled": bool, "depth": int}
+    dict. depth floors at 1 (see CONTEXT.md's Depth entry). Anything
     unparseable falls back to DEFAULT_SIDEBAR_DEPTH."""
     if isinstance(value, dict):
         return {
@@ -339,7 +328,7 @@ def _coerce_sidebar_config(value):
 def _coerce_exclude_config(value):
     """Normalizes a raw `quarto-graph: exclude:` value to a list of pattern
     strings for _is_excluded. A non-list value, or a non-string entry
-    within it, warns to stderr and is dropped -- same tolerant style as bad
+    within it, warns to stderr and is dropped, same tolerant style as bad
     depth/bad YAML elsewhere in this module."""
     if not isinstance(value, list):
         print("WARNING: quarto-graph: exclude: must be a list, got {!r}; ignoring".format(value), file=sys.stderr)
@@ -387,7 +376,7 @@ def page_sidebar_config(page, project_config):
     page. Each field resolves independently: the page's own `quarto-graph:
     sidebar:` frontmatter overrides only the fields it actually sets (a
     page setting just `depth:` keeps the project's `enabled`, and vice
-    versa) -- see CONTEXT.md's Sidebar config entry."""
+    versa). See CONTEXT.md's Sidebar config entry."""
     project_sidebar = project_config["sidebar"]
     page_config = page["meta"].get("quarto-graph")
     if not (isinstance(page_config, dict) and "sidebar" in page_config):
@@ -402,30 +391,31 @@ def page_sidebar_config(page, project_config):
 
 
 def build_registry(pages):
-    """Map every name a wikilink can target (case-insensitive) -> page: each
-    page's own `title:` (its most reliable human-typed name — a real
-    Quarto project commonly names every source file `index.qmd`, inside a
-    slug-named folder, so the filename stem alone isn't a usable default),
-    its folder-path identifier (see `identifier_chain` — the raw filename
-    stem for a one-file-per-page project, or the containing folder's name
-    for an `index.qmd`, folder-note style), and every name in its
-    `also-known-as:` frontmatter list. Deliberately not Quarto's own
-    `aliases:` key — that key's values are URLs Quarto turns into redirect
-    stubs, a different concept from a free-text alternate name for wikilink
-    matching.
+    """Map every name a wikilink can target (case-insensitive) to a page.
+    Each page registers: its own `title:` (the most reliable human-typed
+    name, since a real Quarto project commonly names every source file
+    `index.qmd` inside a slug-named folder, so the filename stem alone
+    isn't a usable default), its folder-path identifier (see
+    `identifier_chain`: the raw filename stem for a one-file-per-page
+    project, or the containing folder's name for an `index.qmd`
+    folder-note), and every name in its `also-known-as:` frontmatter list.
+    This is deliberately not Quarto's own `aliases:` key, since that key's
+    values are URLs Quarto turns into redirect stubs, a different concept
+    from a free-text alternate name for wikilink matching.
 
     Both the folder-path identifier and an explicit `title:` also register
     progressively longer ancestor-qualified forms (`[[api]]` ->
-    `[[docs/api]]` -> `[[project/docs/api]]`), so a name that collides
-    between two pages -- most commonly every folder's title-less
-    `index.qmd` colliding on its own folder name -- stays individually
-    reachable by qualifying it with enough of its path to be unique, the
-    same way Foam disambiguates same-named notes in different folders.
-    Bare `"index"` itself is never a usable target (every folder's
-    index.qmd would otherwise "collide" on it, which isn't a real
-    ambiguity) -- `identifier_chain` folds it into its folder for every
-    page except the project's own top-level `index.qmd`, the one page
-    where "index" is unique by construction.
+    `[[docs/api]]` -> `[[project/docs/api]]`). So when a name collides
+    between two pages, most commonly every folder's title-less `index.qmd`
+    colliding on its own folder name, it stays individually reachable by
+    qualifying it with enough of its path to be unique. Same way Foam
+    disambiguates same-named notes in different folders.
+
+    Bare `"index"` itself is never a usable target, since every folder's
+    index.qmd would otherwise "collide" on it, and that isn't a real
+    ambiguity. `identifier_chain` folds it into its folder for every page
+    except the project's own top-level `index.qmd`, the one page where
+    "index" is unique by construction.
     """
     registry = {}
 
@@ -449,7 +439,7 @@ def build_registry(pages):
         # (title falls back to exactly this). Only register it again here
         # when a custom title differs from it, so a folder note is still
         # reachable by its bare folder name even when it also has its own
-        # title -- registering the same (page, key) pair twice is harmless,
+        # title. Registering the same (page, key) pair twice is harmless,
         # but re-registering it for every page would double every
         # duplicate-target warning.
         start = 1 if page["meta"].get("title") else 2
@@ -464,7 +454,7 @@ def build_registry(pages):
             register("/".join(ancestors[-j:] + (str(title),)), page)
     for page in pages:
         # An index.qmd also keeps resolving by its literal, unfolded
-        # "folder/index" spelling -- for someone who'd rather write
+        # "folder/index" spelling, for someone who'd rather write
         # `[[page1/index]]` explicitly than rely on the folder-note-style
         # bare `[[page1]]` above. Starts at 2 ancestors (`folder/index`),
         # never bare `index` alone, for the same reason as `identifier_chain`.
@@ -487,10 +477,10 @@ def build_backlinks(pages, registry):
     each against the registry (wikilinks) or the other pages' own rel paths
     (Markdown links).
 
-    Only the link's target matters for the backlink map itself (not
-    anchor/display) — constructing a per-occurrence href is the Lua
-    filter's job at each page's own render time, not this pre-render pass.
-    A Markdown link that doesn't resolve to another project page (an
+    Only the link's target matters for the backlink map itself, not
+    anchor/display text. Building a per-occurrence href is the Lua filter's
+    job at each page's own render time, not this pre-render pass. A
+    Markdown link that doesn't resolve to another project page (an
     external URL, an asset, a typo'd path, ...) is left alone entirely,
     since unlike an unresolved wikilink it's not necessarily a mistake, so
     it never lands in `unresolved`.
@@ -500,7 +490,7 @@ def build_backlinks(pages, registry):
       linking page (a page linking to the same target twice, even via a mix
       of wikilink and Markdown link, backlinks once).
     - unresolved: [{"page", "line", "col", "target", "text"}, ...], in scan
-      order — line/col are for `quarto-graph check`'s editor diagnostics;
+      order. line/col are for `quarto-graph check`'s editor diagnostics;
       the pre-render pass only needs "page"/"text" for its warning.
     """
     path_index = {str(page["rel"]): page for page in pages}

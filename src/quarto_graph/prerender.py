@@ -1,9 +1,8 @@
 """Pre-render pass: build the wikilink/alias registry and backlink map
 across every page Quarto is about to render, before any single page's own
-render starts -- a per-page Lua filter can't discover the rest of the
-project on its own. Writes a side-channel file the Lua filter reads at
-each page's own render time; this project never rewrites page source
-(see docs/adr/0001-non-destructive-render-time-resolution.md).
+render starts. A per-page Lua filter can't discover the rest of the
+project on its own. This writes a side-channel file the Lua filter reads
+at each page's own render time; the page source is never rewritten.
 """
 
 import json
@@ -31,13 +30,13 @@ def run_prerender(project_root, strict=False):
     """Always scans the whole project (core.discover_paths), ignoring
     whatever subset of it Quarto is about to render in this particular
     invocation. QUARTO_PROJECT_INPUT_FILES (handed to a pre-render script)
-    looks tempting for this -- zero glob-reimplementation -- but it means
-    "files in *this* render," not "every page in the project": confirmed
-    empirically that it's empty on a `quarto preview` session's own
+    looks tempting for this, since it avoids reimplementing Quarto's glob
+    rules, but it means "files in *this* render," not "every page in the
+    project." Testing shows it's empty on a `quarto preview` session's own
     initial pre-render pass, and that it lists only the one file being
-    rendered for a single-file `quarto render`/`quarto preview` -- either
-    way, exactly the wrong scope for a registry that has to resolve
-    wikilinks against every OTHER page too.
+    rendered for a single-file `quarto render`/`quarto preview`. Either
+    way, that's the wrong scope for a registry that has to resolve
+    wikilinks against every other page too.
 
     Writes REGISTRY_PATH under project_root and returns the same payload
     (mainly for tests).

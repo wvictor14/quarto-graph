@@ -1,7 +1,7 @@
 -- Ships graph.js/graph.css as a proper Quarto HTML dependency.
 --
--- add_html_dependency is the mechanism how Quarto computes the
--- correct relative path for every page's depth (not just the root's).
+-- add_html_dependency is how Quarto works out the correct relative path
+-- for every page, no matter how deep it is in the folder tree.
 function Meta(meta)
   quarto.doc.add_html_dependency({
     name = "quarto-graph",
@@ -46,9 +46,9 @@ local function project_rel(path, base)
   return path:sub(#base + 2)
 end
 
--- Mirrors quarto_graph.core.anchor_slug. An unavoidable duplication across
--- the Python/Lua boundary -- same seam as the two separate ways an
--- extension reaches into a project.
+-- Mirrors quarto_graph.core.anchor_slug. This duplicates that logic on
+-- the Lua side of the Python/Lua boundary, since there's no way to share
+-- code between the two.
 local function anchor_slug(heading)
   local slug = heading:lower():gsub("[^%w%s%-]", "")
   return slug:gsub("%s+", "-")
@@ -137,12 +137,12 @@ local function resolve_run(text, reg)
   return out
 end
 
--- A single Str can't hold a multi-word wikilink target -- "[[Getting
+-- A single Str can't hold a multi-word wikilink target. "[[Getting
 -- Started]]" tokenizes as Str("[[Getting"), Space, Str("Started]]"), not
--- one Str -- so this buffers consecutive Str/Space/SoftBreak inlines into
+-- one Str. So this buffers consecutive Str/Space/SoftBreak inlines into
 -- one literal-text run and only rebuilds that run, leaving any other
--- inline (Emph, Strong, Code, an existing Link, ...) untouched; Pandoc
--- recurses Inlines into those on its own.
+-- inline (Emph, Strong, Code, an existing Link, ...) untouched. Pandoc
+-- recurses into those on its own.
 function Inlines(inlines)
   local reg = load_registry()
   if not reg then
@@ -170,9 +170,9 @@ function Inlines(inlines)
   return out
 end
 
--- Appends this page's own "## Backlinks" section (if any), and records
--- this page's own real output URL for postrender.py to assemble
--- graph.json from -- never predicted from a naming convention.
+-- Appends this page's own "## Backlinks" section, if any, and records
+-- this page's own real output URL so postrender.py can assemble
+-- graph.json from it, instead of guessing at a naming convention.
 function Pandoc(doc)
   local reg = load_registry()
   local project_dir = quarto.project.directory
@@ -211,12 +211,11 @@ function Pandoc(doc)
     output_url = project_rel(output_file, output_dir)
   end
   -- A directory-index page (foo/index.html, or the site root's own
-  -- index.html) is actually *served* at foo/ / the site root, with no
-  -- "index.html" in the address bar -- graph.js's own "which node is this
-  -- page" matching (unchanged, predates this rewrite) compares against
-  -- that served form, not the physical file path. This is a universal
-  -- directory-index normalization (any static file server does this),
-  -- not a guess at Quarto's own naming convention.
+  -- index.html) is actually *served* at foo/ or the site root, with no
+  -- "index.html" in the address bar. graph.js's own "which node is this
+  -- page" matching compares against that served form, not the physical
+  -- file path. This is just how any static file server handles directory
+  -- indexes, not a guess at Quarto's own naming convention.
   if output_url == "index.html" then
     output_url = ""
   elseif output_url:match("/index%.html$") then

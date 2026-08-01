@@ -9,9 +9,9 @@ connections can be explicitly captured and presented to your audience. This site
 
 This project was heavily inspired by [Obsidian](https://obsidian.md/help/), a note-taking app that lets you visualize your personal notes as a giant graph. Wikilinks, or more generally analyzing connected concepts using graphs, have a long history in various domains [^examples]. `quarto-graph`'s goal is bringing this feature to your quarto-powered websites.
 
-[^examples]: [Connected Papers](https://www.connectedpapers.com/) is a website that lets you explore connected papers using graphs. [Six Degrees of Wikipedia](https://www.sixdegreesofwikipedia.com/) allows you to explore wikipedia by finding the shortest path between pages.
+[^examples]: [Connected Papers](https://www.connectedpapers.com/) lets you explore connected papers using graphs. [Six Degrees of Wikipedia](https://www.sixdegreesofwikipedia.com/) finds the shortest path between two Wikipedia pages.
 
-`quarto-graph` grants powerful navigational features. For example, with [[The Graph Widget]], users can see how different pages are connected in a graph, and they can click on a node, which will take them to that specific page.
+`quarto-graph` adds navigational features like [[The Graph Widget]]. Click a node to see how pages connect, and jump straight to that page.
 
 {{< quarto-graph-full >}}
 
@@ -20,9 +20,8 @@ In the graph,
 - All pages are *nodes*
 - Connections are pages that link to the current page, or that link from current page to other pages. Links can either be Wikilinks using the square brackets syntax e.g. `[[Getting Started]]`, or regular markdown links e.g. [`[Getting Started](getting-started/index.qmd)`](getting-started/index.qmd).
 
-In addition to the graph widget, wikilinks allow us to auto-generate 
-[[Backlinks]], scroll to the end of this page to see all the pages that 
-reference the current page.
+Wikilinks also auto-generate [[Backlinks]]. Scroll to the end of this page
+to see every page that links back to it.
 
 ## Start here
 

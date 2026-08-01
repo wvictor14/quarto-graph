@@ -3,11 +3,6 @@ author: wvictor14
 version: 0.3.0
 quarto-required: ">=1.4.0"
 contributes:
-  project:
-    project:
-      type: website
-      pre-render: prerender.py
-      post-render: postrender.py
   filters:
     - filter.lua
   shortcodes:

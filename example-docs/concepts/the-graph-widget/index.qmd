@@ -39,7 +39,7 @@ and backlink map from every page's wikilinks and writes it to a
 side-channel file; then, at each page's own render time, its Lua filter
 records that page's real output URL to another side-channel file. Post-render
 joins the two and writes the final `graph.json` into the output
-directory — this late join is why a wikilink resolves to a real URL only
+directory. This late join is why a wikilink resolves to a real URL only
 after the whole project has rendered, not up front.
 
 ## Node color
