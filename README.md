@@ -46,6 +46,10 @@ See the [documentation site](https://victoryuan.com/quarto-graph/news/) for the 
 ## next steps
 
 - [ ] test in another project (evaluate the ux for install, and usage) {.in-progress}
+- [ ] graph configuration
+  - [ ] classes
+  - [ ] node colors
+  - [ ] default appearance (font size, zoom)
 - [ ] more fully flesh out cli 
   - explore what can be done with exposed graph data e.g. in an analysis or dashboard
 - [ ] backlinks should be configurable on/off, as well as header and heading level
