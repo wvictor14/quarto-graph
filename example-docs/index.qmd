@@ -28,6 +28,11 @@ type: moc
 connected via links. Wikilinks can expediate knowledge discovery, because 
 connections can be explicitly captured and presented to your audience. This site itself was built with `quarto-graph`.
 
+::: {.callout-warning}
+**Under active development.** Pre-1.0: API and behavior may change between
+releases.
+:::
+
 This project was heavily inspired by [Obsidian](https://obsidian.md/help/), a note-taking app that lets you visualize your personal notes as a giant graph. Wikilinks, or more generally analyzing connected concepts using graphs, have a long history in various domains [^examples]. `quarto-graph`'s goal is bringing this feature to your quarto-powered websites.
 
 [^examples]: [Connected Papers](https://www.connectedpapers.com/) lets you explore connected papers using graphs. [Six Degrees of Wikipedia](https://www.sixdegreesofwikipedia.com/) finds the shortest path between two Wikipedia pages.

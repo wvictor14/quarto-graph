@@ -1,9 +1,15 @@
 # quarto-graph
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue)](pyproject.toml)
+[![Lifecycle](https://img.shields.io/badge/lifecycle-early%20development-orange)](https://github.com/wvictor14/quarto-graph)
 
 Quarto project-type extension: adds Obsidian-style `[[wikilinks]]`,
 backlinks, and an interactive graph view to a normal Quarto project.
+
+## Status
+
+Early development, pre-1.0. API and behavior may change between releases.
 
 ## Quick start
 
