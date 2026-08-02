@@ -1,20 +1,57 @@
 /*-- scss:defaults --*/
-$primary: #34d399 !default;
-$link-color: #34d399 !default;
-$body-bg: #181a1d !default;
+$black: #000000 !default;
+$white: #ffffff !default;
+$lavender: #c9b8ec !default;
+
+$body-bg: $black !default;
+$body-color: $white !default;
+$primary: $white !default;
+$link-color: $lavender !default;
+$border-color: $white !default;
 
 /*-- scss:rules --*/
 #quarto-sidebar,
 .sidebar.sidebar-navigation,
 nav.quarto-secondary-nav {
-  background-color: #131416;
+  background-color: #0a0a0a;
+  border-right: 1px solid $white;
 }
 
 nav.quarto-secondary-nav .breadcrumb {
   background-color: transparent;
 }
 
-code {
-  background-color: #2b2f33;
-  color: #7fdbca;
+.sidebar-navigation a.sidebar-link.active {
+  background-color: #241f34;
+  color: #ddd0f5;
+}
+
+// Quarto's inline search box (Algolia Autocomplete) hardcodes a white
+// input regardless of theme; override to match the dark sidebar.
+.aa-Form {
+  background-color: #262626;
+  border-color: $white;
+}
+.aa-Input {
+  color: $white;
+}
+.aa-Input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+// Quarto's own inline-code rule only targets <code> inside p/li/td,
+// leaving headings on Bootstrap's plain #f5f5f5-bg/white-text default
+// (unreadable). Override <code> everywhere for a consistent, legible box;
+// lavender-tinted for more contrast than a plain gray.
+code:not(.sourceCode) {
+  background-color: #241f34;
+  color: #ddd0f5;
+}
+
+hr {
+  border-top-color: $white;
+}
+
+:focus-visible {
+  outline-color: $lavender;
 }

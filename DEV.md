@@ -1,4 +1,4 @@
-Versioning
+# Versioning
 
 There is versioning for the quarto extension `_extension.yml` and then versioning
 for the python package. They are released together, one command bumps both.
@@ -6,6 +6,7 @@ for the python package. They are released together, one command bumps both.
 ```bash
 uv version --bump minor #bumps toml
 sed -i "s/^version: .*/version: $(uv version --short)/" _extensions/quarto-graph/_extension.yml
+sed -i "s/quarto-graph v[0-9.]*/quarto-graph v$(uv version --short)/" example-docs/_quarto.yml
 git commit -am "release $(uv version --short)"
 git tag "v$(uv version --short)" && git push --follow-tags
 ```

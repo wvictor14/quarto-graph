@@ -27,7 +27,7 @@ website:
           - reference/limitations/index.qmd
       - graph/index.qmd
   page-footer:
-    center: "quarto-graph v0.3.0"
+    center: "quarto-graph v0.4.0"
 
 format:
   html:
@@ -38,3 +38,6 @@ format:
       light: [flatly, styles.scss]
       dark: [darkly, styles.scss, dark.scss]
     respect-user-color-scheme: true
+    highlight-style:
+      light: pygments
+      dark: zenburn
