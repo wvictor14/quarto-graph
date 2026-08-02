@@ -11,6 +11,7 @@ quarto-graph:
 
 website:
   title: "quarto-graph docs"
+  favicon: favicon.svg
   sidebar:
     style: "docked"
     contents:

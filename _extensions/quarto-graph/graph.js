@@ -6,8 +6,7 @@
  *     via its own data-* attributes (see full-graph.lua)
  *   - a local N-hop mini graph at the top of the right sidebar on every
  *     page that appears in the graph (N from the page's resolved
- *     `quarto-graph: sidebar: depth:` config, default 1), independent of
- *     whether that page also has a full-graph widget, unless the sidebar
+ *     `quarto-graph: sidebar: depth:` config, default 1) unless the sidebar
  *     is explicitly disabled via `quarto-graph: sidebar: false`
  *
  * Self-contained vanilla JS + canvas: no external requests, works under any

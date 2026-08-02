@@ -32,6 +32,8 @@ filters:
   - quarto-graph
 ```
 
+The pre-render script identifies pages and links and writes this to a `registry.json` file. The lua filter resolves wikilinks with real links and writes a backlinks section, based on the registry. After render, `quarto-graph postrender` gets the actual urls into a graph.json file which serves data to the graph widget.
+
 ## Using wikilinks
 
 Type `[[Home]]` to link to a page named "Home", without knowing its file path. 
@@ -39,7 +41,7 @@ Type `[[Home]]` to link to a page named "Home", without knowing its file path.
 
 Here's an example,
 
-Say you this somewhere in the contet of a page:
+Say you have this somewhere in a page,
 
 `blog/a-very-interesting-blog-post.qmd`:
 
@@ -47,7 +49,7 @@ Say you this somewhere in the contet of a page:
 Go back to [[Home]] using this wikilink
 ```
 
-And if somewhere else, you have another page with this as the following yaml
+And if somewhere else, you have another page with frontmatter yaml,
 
 `somewhere/deep/in/your/project/index.qmd`:
 
@@ -62,9 +64,7 @@ Then, in the rendered webpage, `[[Home]]` will be replaced with a link
 `[Home](somewhere/deep/in/your/project/index.html)`
 
 In a nutshell, wikilinks link pages without needing to know the actual
-path of each page.
-
-_**You can move pages without updating any links.**_
+path of each page. _**You can move pages without updating any links.**_
 
 `quarto-graph` also tracks these connections between pages, which powers
 the graph and backlinks features covered in the next sections.
