@@ -4,6 +4,20 @@ order: 50
 type: reference
 ---
 
+## 0.4.0
+
+- Dropped the project-type plugin: the extension no longer auto-wires
+  render hooks. Set `project: type: website` with
+  `pre-render: quarto-graph prerender` and
+  `post-render: quarto-graph postrender` in your `_quarto.yml`.
+- `prerender` and `postrender` are now `quarto-graph` CLI subcommands;
+  `--strict` makes prerender fail on any unresolved wikilink, handy for CI.
+- Versioning unified: `pyproject.toml` is the single source, mirroring
+  into the extension version and `quarto_graph.__version__`.
+- Docs site rewritten: new News page, reworked getting-started, widget,
+  CLI, and limitations pages; decision records folded into the project
+  language docs.
+
 ## 0.3.0
 
 - Added `quarto-graph: exclude:` project config: a full opt-out for pages
