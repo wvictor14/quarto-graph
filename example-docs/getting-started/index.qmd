@@ -15,6 +15,7 @@ quarto add wvictor14/quarto-graph
 Then install the Python package, which resolves the graph data:
 
 ```sh
+pip install quarto-graph # or if using uv:
 uv add quarto-graph
 ```
 
@@ -32,7 +33,7 @@ filters:
   - quarto-graph
 ```
 
-The pre-render script identifies pages and links and writes this to a `registry.json` file. The lua filter resolves wikilinks with real links and writes a backlinks section, based on the registry. After render, `quarto-graph postrender` gets the actual urls into a graph.json file which serves data to the graph widget.
+The pre-render script identifies pages and links and writes this to a `registry.json` file. During render, the lua filter resolves wikilinks with real links and writes a backlinks section, based on the registry. After render, `quarto-graph postrender` gets the actual urls into a graph.json file which serves data to the graph widget.
 
 ## Using wikilinks
 
