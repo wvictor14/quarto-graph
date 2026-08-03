@@ -1,6 +1,5 @@
 ---
 title: The Graph Widget
-type: concept
 order: 20
 ---
 
@@ -24,15 +23,24 @@ with two nodes (Backlinks and The Graph Widget) and one edge between them:
 ```json
 {
   "nodes": [
-    {"title": "Backlinks", "type": "concept", "url": "/backlinks/"},
-    {"title": "The Graph Widget", "type": "concept", "url": "/the-graph-widget/"}
+    {"rel": "concepts/backlinks/index.qmd", "title": "Backlinks", "bucket": "concepts", "depth": 2, "colors": {"by-folder": "#e69f00", "by-depth": "#440154"}, "url": "/backlinks/"},
+    {"rel": "concepts/the-graph-widget/index.qmd", "title": "The Graph Widget", "bucket": "concepts", "depth": 2, "colors": {"by-folder": "#e69f00", "by-depth": "#3b518b"}, "url": "/the-graph-widget/"}
   ],
-  "edges": [[0, 1]]
+  "edges": [[0, 1]],
+  "schemes": {
+    "by-folder": {"by": "folder", "palette": "okabe-ito", "legend": [{"bucket": "concepts", "color": "#e69f00"}]},
+    "by-depth": {"by": "depth", "palette": "viridis", "legend": [{"bucket": 2, "color": "#440154"}]}
+  },
+  "default-scheme": "by-folder"
 }
 ```
 
 Edges are pairs of node indices; `[0, 1]` connects the first and second
-nodes.
+nodes. Each node carries a `bucket` (its top-level folder, or `(root)` for
+the project's own top-level pages), a path `depth`, and a `colors` map with
+one hex per color scheme, so a widget can switch schemes without graph.js
+knowing any palette. `schemes` also carries each scheme's `legend` (bucket
+to color), which the full graph widget renders.
 
 `graph.json` is assembled in two passes: pre-render builds the registry
 and backlink map from every page's wikilinks and writes it to a
@@ -42,19 +50,49 @@ joins the two and writes the final `graph.json` into the output
 directory. This late join is why a wikilink resolves to a real URL only
 after the whole project has rendered, not up front.
 
-## Node color
+## Node colors
 
-Each node's color comes from its page's `type:` frontmatter. The mapping is:
+Node colors come from **color schemes**, defined in `_quarto.yml` under
+`quarto-graph: color:`. A scheme says how to bucket a page (`by`) and which
+palette to assign to those buckets (`palette`). By default pages are
+colored **by folder** using the colorblind-safe **Okabe-Ito** palette,
+which emphasizes the structural split between topics. Two built-in schemes
+exist, and you can override them or add your own:
 
-| Type | Color |
-|------|-------|
-| `concept` | #3ba29f |
-| `person` | #9177b6 |
-| `reference` | #d65527 |
-| `project` | #6b0021 |
-| `experiment` | #c9a227 |
-| `moc` | #8fa6d9 |
-| (none/other) | #9aa0a6 |
+```yaml
+quarto-graph:
+  color:
+    default-scheme: by-folder   # which scheme widgets use by default
+    schemes:
+      by-folder: {by: folder, palette: okabe-ito}   # the default
+      by-depth:  {by: depth, palette: viridis}      # nesting depth shades
+```
+
+| Key | Meaning |
+|---|---|
+| `by-folder` (built-in default) | bucket = top-level folder (`(root)` for top-level pages); qualitative palette |
+| `by-depth` (built-in) | bucket = path depth (0 at root, 1 = `a/index.qmd`, ...); sequential palette |
+| `custom` | exact `custom: {bucket: hex}` map; any bucket not listed falls back to gray |
+
+`palette` values: `okabe-ito` (7 colorblind-safe colors, the default),
+`d3-category10` (10 categorical colors), or `viridis` (sequential — pairs
+naturally with `by: depth`). When a qualitative palette has more folders
+than it has colors, extra buckets get auto-generated maximally-spread
+colors, so a project with any number of folders still gets distinct hues.
+
+For a custom scheme (project-wide; `custom:` keys are folder names):
+
+```yaml
+quarto-graph:
+  color:
+    default-scheme: my-pal
+    schemes:
+      my-pal:
+        by: custom
+        custom:
+          concepts: "#ee7733"
+          reference: "#0077bb"
+```
 
 ## Customizing the full graph widget
 
@@ -67,15 +105,23 @@ Each node's color comes from its page's `type:` frontmatter. The mapping is:
 | `depth` | Show only pages within N links of `root` (or the current page, if `root` is omitted), instead of the whole project graph. |
 | `root` | The page to center `depth` on. Matched the same way a `[[wikilink]]` is: by title, alias, or filename stem first, falling back to a literal source path (e.g. `posts/foo.qmd`) if nothing matches. Ignored unless `depth` is also set. |
 | `expandable` | `"true"` adds a button that expands the widget to a fullscreen overlay. Default: off. |
+| `color-scheme` | Color this widget with a scheme name from `quarto-graph: color: schemes:` (`"by-folder"`, `"by-depth"`, or your own), overriding the project default for this widget only. Unknown names fall back to the default scheme's colors. |
+
+Multiple widgets, each with its own color scheme, on one page is
+supported — the widget's per-widget `color-scheme` overrides only that
+instance:
 
 ```markdown
-{{{< quarto-graph-full width="700px" height="50vh" expandable="true" >}}}
+{{{< quarto-graph-full >}}}
 
-{{{< quarto-graph-full root="Getting Started" depth="2" >}}}
+{{{< quarto-graph-full color-scheme="by-depth" height="50vh" >}}}
+
+{{{< quarto-graph-full color-scheme="my-pal" width="60%" expandable="true" >}}}
 ```
 
-Each `{{{< quarto-graph-full >}}}` call is independent. There's no
-project-wide default for any of these, unlike the sidebar mini-panel below.
+Each `{{{< quarto-graph-full >}}}` call is independent. Color does have a
+project-wide default (`color: default-scheme:`), but each widget's own
+`color-scheme` kwarg overrides it for that instance only, as shown above.
 A `root` that doesn't match any page logs a warning at render time and that
 particular widget renders nothing, rather than silently falling back to the
 whole graph.

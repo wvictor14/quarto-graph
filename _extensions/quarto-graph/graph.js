@@ -32,14 +32,6 @@
   }
   var base = new URL(depth > 0 ? new Array(depth + 1).join("../") : ".", location.href).href;
 
-  var TYPE_COLORS = {
-    concept: "#3ba29f",
-    person: "#9177b6",
-    reference: "#d65527",
-    project: "#6b0021",
-    experiment: "#c9a227",
-    moc: "#8fa6d9",
-  };
   var DEFAULT_COLOR = "#9aa0a6";
 
   function isDark() {
@@ -170,6 +162,12 @@
     var ds = el.dataset;
     if (ds.width) el.style.width = ds.width;
 
+    // Per-widget color scheme: `color-scheme=` shortcode kwarg wins,
+    // otherwise the project-wide default. Unknown name falls back to
+    // gray nodes inside initGraph (colors[unknown] is undefined), never
+    // a hard error.
+    var scheme = ds.colorScheme || data.defaultScheme || "by-folder";
+
     var height;
     if (ds.height) {
       el.style.height = ds.height;
@@ -193,13 +191,38 @@
       focus = findCurrent(data);
     }
 
-    initGraph(el, graphData, { height: height, focus: focus });
+    initGraph(el, graphData, { height: height, focus: focus, scheme: scheme });
+    renderLegend(el, data, scheme);
 
     if (ds.expandable === "true") {
       el.appendChild(makeExpandButton("quarto-graph-full__expand", "Expand graph to fullscreen", function () {
-        openGraphModal(graphData, focus, label, { big: true });
+        openGraphModal(graphData, focus, label, { big: true, scheme: scheme });
       }));
     }
+  }
+
+  // Small folder/color legend, full-graph widget only. Reads the baked
+  // scheme definition from graph.json (postrender computed it), no palette
+  // logic here. Rendered after the canvas so it overlays bottom-left.
+  function renderLegend(el, data, scheme) {
+    var def = data.schemes && data.schemes[scheme];
+    if (!def || !def.legend || !def.legend.length) return;
+    var legend = document.createElement("div");
+    legend.className = "quarto-graph-full__legend";
+    def.legend.forEach(function (item) {
+      var row = document.createElement("div");
+      row.className = "quarto-graph-full__legend-row";
+      var swatch = document.createElement("span");
+      swatch.className = "quarto-graph-full__legend-swatch";
+      swatch.style.background = item.color;
+      var label = document.createElement("span");
+      label.className = "quarto-graph-full__legend-label";
+      label.textContent = def.by === "depth" ? "Depth " + item.bucket : item.bucket;
+      row.appendChild(swatch);
+      row.appendChild(label);
+      legend.appendChild(row);
+    });
+    el.appendChild(legend);
   }
 
   // mkdocs-material uses .md-sidebar--secondary; Quarto's default website/
@@ -231,8 +254,9 @@
     title.textContent = "Graph";
     title.href = new URL(data.graphUrl || "graph.html", base).href;
     title.title = "Open the full graph";
+    var scheme = data.defaultScheme || "by-folder";
     var expand = makeExpandButton("quarto-graph-panel__expand", "Expand local graph", function () {
-      openGraphModal(sub.data, sub.focus, "Local graph · " + data.nodes[cur].title);
+      openGraphModal(sub.data, sub.focus, "Local graph · " + data.nodes[cur].title, { scheme: scheme });
     });
     head.appendChild(title);
     head.appendChild(expand);
@@ -245,6 +269,7 @@
       height: 170,
       focus: sub.focus,
       mini: true,
+      scheme: scheme,
     });
   }
 
@@ -292,6 +317,7 @@
     initGraph(body, data, {
       height: opts.big ? Math.round(window.innerHeight * 0.86) : Math.min(560, Math.round(window.innerHeight * 0.62)),
       focus: focus,
+      scheme: opts.scheme || "by-folder",
     });
     close.focus();
   }
@@ -320,10 +346,11 @@
     window.addEventListener("resize", resize);
 
     // --- simulation state ------------------------------------------------
+    var scheme = opts.scheme || "by-folder";
     var nodes = data.nodes.map(function (n, i) {
       var a = (2 * Math.PI * i) / N;
       var r = 40 + 14 * Math.sqrt(N) * ((i % 7) / 7 + 0.4);
-      return { x: Math.cos(a) * r, y: Math.sin(a) * r, vx: 0, vy: 0, deg: 0, d: n };
+      return { x: Math.cos(a) * r, y: Math.sin(a) * r, vx: 0, vy: 0, deg: 0, d: n, c: (n.colors && n.colors[scheme]) || DEFAULT_COLOR };
     });
     data.edges.forEach(function (e) {
       nodes[e[0]].deg++;
@@ -406,7 +433,7 @@
         var r = radius(n);
         var dim = hover !== -1 && i !== hover && !(hi && hi[i]);
         ctx.globalAlpha = dim ? 0.25 : 1;
-        ctx.fillStyle = TYPE_COLORS[n.d.type] || DEFAULT_COLOR;
+        ctx.fillStyle = n.c || DEFAULT_COLOR;
         ctx.beginPath();
         ctx.arc(p.x, p.y, r, 0, 2 * Math.PI);
         ctx.fill();

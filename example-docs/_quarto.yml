@@ -13,6 +13,9 @@ website:
   title: "quarto-graph docs"
   favicon: favicon.svg
   sidebar:
+    tools:
+      - icon: github
+        href: https://github.com/wvictor14/quarto-graph/
     style: "docked"
     contents:
       - getting-started/index.qmd

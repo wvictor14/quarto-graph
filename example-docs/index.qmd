@@ -1,7 +1,6 @@
 ---
 title: quarto-graph
 subtitle: Wikilinks and a live graph, for Quarto websites.
-type: moc
 ---
 
 <style>

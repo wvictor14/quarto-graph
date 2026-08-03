@@ -54,7 +54,6 @@ def run_prerender(project_root, strict=False):
         "pages": {
             str(p["rel"]): {
                 "title": p["title"],
-                "type": p["type"],
                 "sidebar": page_sidebar_config(p, project_config),
             }
             for p in pages

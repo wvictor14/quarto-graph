@@ -80,6 +80,13 @@ return {
     if kw["expandable"] == "true" then
       table.insert(attrs, { "data-expandable", "true" })
     end
+    -- Per-widget color scheme by name (defined in `quarto-graph: color:
+    -- schemes:` in _quarto.yml, or a built-in like "by-folder"/"by-depth").
+    -- graph.js falls back to the graph.json default when the name is
+    -- unknown, so no validation here.
+    if kw["color-scheme"] then
+      table.insert(attrs, { "data-color-scheme", kw["color-scheme"] })
+    end
 
     if kw["depth"] then
       local depth = math.max(1, math.floor(tonumber(kw["depth"]) or 1))

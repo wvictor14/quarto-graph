@@ -1,7 +1,6 @@
 ---
 title: News
 order: 50
-type: reference
 ---
 
 ## 0.4.0

@@ -43,12 +43,44 @@ filters:
 
 See the [documentation site](https://victoryuan.com/quarto-graph/news/) for the full syntax and frontmatter keys.
 
+## Node colors
+
+By default every node is colored by its top-level folder using the
+Okabe-Ito colorblind-safe palette, so a project organized by topic folder
+shows those structural groups at a glance. Configure via
+`quarto-graph: color:` in `_quarto.yml`:
+
+```yaml
+quarto-graph:
+  color:
+    default-scheme: my-pal
+    schemes:
+      by-folder: {by: folder, palette: okabe-ito}   # the default
+      by-depth:  {by: depth, palette: viridis}      # nesting depth shades
+      my-pal:
+        by: custom
+        custom:
+          concepts: "#ee7733"
+          reference: "#0077bb"
+```
+
+Pick a scheme per widget without touching config:
+
+```markdown
+{{< quarto-graph-full color-scheme="by-depth" >}}
+```
+
+Built-in schemes: `by-folder` (default) and `by-depth`. Palettes:
+`okabe-ito`, `d3-category10`, `viridis`; auto-generated colors kick in
+when folders outnumber a qualitative palette. See the docs site for the
+full reference.
+
 ## next steps
 
 - [ ] test in another project (evaluate the ux for install, and usage) {.in-progress}
 - [ ] graph configuration
   - [ ] classes
-  - [ ] node colors
+  - [x] node colors
   - [ ] default appearance (font size, zoom)
 - [ ] more fully flesh out cli 
   - explore what can be done with exposed graph data e.g. in an analysis or dashboard

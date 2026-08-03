@@ -1,6 +1,5 @@
 ---
 title: Backlinks
-type: concept
 order: 30
 ---
 

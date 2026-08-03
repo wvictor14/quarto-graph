@@ -1,6 +1,5 @@
 ---
 title: Wikilinks and Aliases
-type: concept
 order: 10
 ---
 

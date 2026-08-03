@@ -296,7 +296,6 @@ def parse_page(path, project_root):
         "body": body,
         "meta": meta,
         "title": meta.get("title") or chain[-1],
-        "type": str(meta.get("type") or "").lower(),
     }
 
 
@@ -345,15 +344,16 @@ def _coerce_exclude_config(value):
 def read_project_config(project_root, config_path=None):
     """Load the project-wide `quarto-graph:` mapping from `_quarto.yml` (or
     `_quarto.yaml`) at project_root, returning {"sidebar": {"enabled": bool,
-    "depth": int}, "exclude": [pattern, ...]}. Missing file, bad YAML, or a
-    missing key all fall back to that key's default independently (bad YAML
-    also warns to stderr, same as parse_page's own frontmatter handling).
+    "depth": int}, "exclude": [pattern, ...], "color": {...}}.
+    Missing file, bad YAML, or a missing key all fall back to that key's
+    default independently (bad YAML also warns to stderr, same as
+    parse_page's own frontmatter handling).
 
     `config_path` lets a caller that already resolved
     `_quarto_project_config_path` (discover_paths) pass it in directly
     instead of this function re-doing that same existence check."""
     project_root = Path(project_root)
-    defaults = {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG), "exclude": []}
+    defaults = {"sidebar": dict(DEFAULT_SIDEBAR_CONFIG), "exclude": [], "color": {}}
     if config_path is None:
         config_path = _quarto_project_config_path(project_root)
     if config_path is None:
@@ -368,6 +368,7 @@ def read_project_config(project_root, config_path=None):
     return {
         "sidebar": _coerce_sidebar_config(quarto_graph.get("sidebar", DEFAULT_SIDEBAR_CONFIG)),
         "exclude": _coerce_exclude_config(quarto_graph.get("exclude", [])),
+        "color": quarto_graph.get("color") if isinstance(quarto_graph.get("color"), dict) else {},
     }
 
 
@@ -388,6 +389,92 @@ def page_sidebar_config(page, project_config):
         "enabled": bool(raw["enabled"]) if "enabled" in raw else project_sidebar["enabled"],
         "depth": _coerce_depth(raw["depth"], project_sidebar["depth"]) if "depth" in raw else project_sidebar["depth"],
     }
+
+
+ROOT_BUCKET = "(root)"
+
+
+def compute_bucket(rel, by):
+    """Compute color bucket for a page rel under the given scheme type."""
+    if by == "depth":
+        return len(rel.parent.parts)
+    # by == "folder" or "custom" (custom uses same bucket as folder for lookup)
+    if not rel.parent.parts:
+        return ROOT_BUCKET
+    return rel.parent.parts[0]
+
+
+def _coerce_palette_name(value):
+    if value in ("okabe-ito", "d3-category10", "viridis"):
+        return value
+    print("WARNING: unknown palette name {!r}, falling back to okabe-ito".format(value), file=sys.stderr)
+    return "okabe-ito"
+
+
+def _coerce_by_mode(value):
+    if value in ("folder", "depth", "custom"):
+        return value
+    print("WARNING: unknown color-by mode {!r}, falling back to folder".format(value), file=sys.stderr)
+    return "folder"
+
+
+def _coerce_custom_map(value):
+    """Normalize custom: {bucket: hex} map. Non-dict -> empty with warning."""
+    if not isinstance(value, dict):
+        print("WARNING: color custom must be a mapping, got {!r}; ignoring".format(value), file=sys.stderr)
+        return {}
+    result = {}
+    for k, v in value.items():
+        if isinstance(k, str) and isinstance(v, str):
+            result[k] = v
+        else:
+            print("WARNING: custom map entry must be string -> string, got {!r}: {!r}; skipping".format(k, v), file=sys.stderr)
+    return result
+
+
+def _coerce_schemes(value):
+    """Normalize schemes dict: {name: {by, palette?, custom?}}."""
+    if not isinstance(value, dict):
+        print("WARNING: color schemes must be a mapping, got {!r}; ignoring".format(value), file=sys.stderr)
+        return {}
+    result = {}
+    for name, spec in value.items():
+        if not isinstance(name, str) or not isinstance(spec, dict):
+            print("WARNING: scheme entry must be string -> mapping, got {!r}: {!r}; skipping".format(name, spec), file=sys.stderr)
+            continue
+        by = _coerce_by_mode(spec.get("by", "folder"))
+        palette = _coerce_palette_name(spec.get("palette", "okabe-ito"))
+        custom = _coerce_custom_map(spec.get("custom", {}))
+        result[name] = {"by": by, "palette": palette, "custom": custom}
+    return result
+
+
+def _coerce_default_scheme(value, available):
+    if isinstance(value, str) and value in available:
+        return value
+    if isinstance(value, str):
+        print("WARNING: default-scheme {!r} not in available schemes; using by-folder".format(value), file=sys.stderr)
+    return "by-folder"
+
+
+BUILTIN_SCHEMES = {
+    "by-folder": {"by": "folder", "palette": "okabe-ito", "custom": {}},
+    "by-depth": {"by": "depth", "palette": "viridis", "custom": {}},
+}
+
+
+def resolve_schemes(color_cfg):
+    """Merge built-in schemes with user config, return {name: {by,palette,custom}}.
+    color_cfg is the flattened `quarto-graph: color:` mapping from
+    read_project_config (possibly empty)."""
+    color_cfg = color_cfg if isinstance(color_cfg, dict) else {}
+    user_schemes = _coerce_schemes(color_cfg.get("schemes") or {})
+    default_scheme = _coerce_default_scheme(
+        color_cfg.get("default-scheme"),
+        set(BUILTIN_SCHEMES.keys()) | set(user_schemes.keys()),
+    )
+    merged = {**BUILTIN_SCHEMES, **user_schemes}
+    return {"default": default_scheme, "schemes": merged}
 
 
 def build_registry(pages):

@@ -6,6 +6,7 @@ from quarto_graph.core import (
     anchor_slug,
     build_backlinks,
     build_registry,
+    compute_bucket,
     discover_paths,
     find_wikilinks_outside_fences,
     identifier_chain,
@@ -14,6 +15,7 @@ from quarto_graph.core import (
     parse_page,
     read_project_config,
     resolve_markdown_href,
+    resolve_schemes,
 )
 
 
@@ -65,51 +67,112 @@ def test_parse_page_bad_yaml_frontmatter_warns_and_continues(tmp_path, capsys):
     assert "WARNING: bad frontmatter" in capsys.readouterr().err
 
 
-def test_parse_page_reads_type(tmp_path):
+def test_parse_page_does_not_parse_type(tmp_path):
+    # `type:` is an Obsidian skeleton from an older version, deliberately
+    # unsupported now (AGENTS.md categories note). parse_page must not
+    # surface it.
     f = tmp_path / "Note.md"
     f.write_text("---\ntype: Concept\n---\nbody\n", encoding="utf-8")
     page = parse_page(f, tmp_path)
-    assert page["type"] == "concept"
+    assert "type" not in page
+
+
+# --- compute_bucket ------------------------------------------------------------
+
+def test_compute_bucket_folder_top_level():
+    assert compute_bucket(PurePosixPath("concepts/backlinks/index.qmd"), "folder") == "concepts"
+
+
+def test_compute_bucket_folder_nested_uses_top_level():
+    assert compute_bucket(PurePosixPath("a/b/c/page.md"), "folder") == "a"
+
+
+def test_compute_bucket_folder_root_pages_use_root_bucket():
+    assert compute_bucket(PurePosixPath("index.qmd"), "folder") == "(root)"
+
+
+def test_compute_bucket_depth_counts_parent_dirs():
+    assert compute_bucket(PurePosixPath("index.qmd"), "depth") == 0
+    assert compute_bucket(PurePosixPath("getting-started/index.qmd"), "depth") == 1
+    assert compute_bucket(PurePosixPath("concepts/backlinks/index.qmd"), "depth") == 2
+
+
+# --- resolve_schemes -----------------------------------------------------------
+
+def test_resolve_schemes_defaults_to_builtins():
+    result = resolve_schemes({})
+    assert result["default"] == "by-folder"
+    assert set(result["schemes"]) == {"by-folder", "by-depth"}
+    assert result["schemes"]["by-folder"]["by"] == "folder"
+    assert result["schemes"]["by-depth"]["palette"] == "viridis"
+
+
+def test_resolve_schemes_user_scheme_and_override_default():
+    result = resolve_schemes({
+        "default-scheme": "my-pal",
+        "schemes": {"my-pal": {"by": "custom", "custom": {"concepts": "#ee7733"}}},
+    })
+    assert result["default"] == "my-pal"
+    assert "my-pal" in result["schemes"]
+    assert result["schemes"]["my-pal"]["custom"] == {"concepts": "#ee7733"}
+    assert result["schemes"]["by-folder"]["by"] == "folder"
+
+
+def test_resolve_schemes_user_overrides_builtin():
+    result = resolve_schemes({"schemes": {"by-folder": {"by": "folder", "palette": "d3-category10"}}})
+    assert result["schemes"]["by-folder"]["palette"] == "d3-category10"
+
+
+def test_resolve_schemes_bad_palette_warns_and_defaults(capsys):
+    result = resolve_schemes({"schemes": {"odd": {"by": "folder", "palette": "nope"}}})
+    assert result["schemes"]["odd"]["palette"] == "okabe-ito"
+    assert "WARNING: unknown palette name" in capsys.readouterr().err
+
+
+def test_resolve_schemes_unknown_default_warns_and_uses_by_folder(capsys):
+    result = resolve_schemes({"default-scheme": "missing"})
+    assert result["default"] == "by-folder"
+    assert "WARNING: default-scheme" in capsys.readouterr().err
 
 
 # --- read_project_config -----------------------------------------------------
 
 def test_read_project_config_missing_file_defaults_true(tmp_path):
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_reads_sidebar_false(tmp_path):
     (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar: false\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_reads_sidebar_object_with_depth(tmp_path):
     (tmp_path / "_quarto.yml").write_text(
         "quarto-graph:\n  sidebar:\n    enabled: true\n    depth: 2\n", encoding="utf-8"
     )
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 2}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 2}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_sidebar_object_missing_depth_defaults_to_one(tmp_path):
     (tmp_path / "_quarto.yml").write_text("quarto-graph:\n  sidebar:\n    enabled: false\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": False, "depth": 1}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_sidebar_depth_floors_at_one(tmp_path):
     (tmp_path / "_quarto.yml").write_text(
         "quarto-graph:\n  sidebar:\n    depth: 0\n", encoding="utf-8"
     )
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_no_quarto_graph_key_defaults_true(tmp_path):
     (tmp_path / "_quarto.yml").write_text("project:\n  type: website\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": [], "color": {}}
 
 
 def test_read_project_config_bad_yaml_warns_and_defaults(tmp_path, capsys):
     (tmp_path / "_quarto.yml").write_text("key: [unterminated\n", encoding="utf-8")
-    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": []}
+    assert read_project_config(tmp_path) == {"sidebar": {"enabled": True, "depth": 1}, "exclude": [], "color": {}}
     assert "WARNING: bad YAML" in capsys.readouterr().err
 
 
@@ -255,7 +318,6 @@ def _page(stem, also_known_as=None, rel=None):
         "body": "",
         "meta": meta,
         "title": stem,
-        "type": "",
     }
 
 
@@ -297,7 +359,6 @@ def test_build_registry_registers_by_title_not_just_filename_stem():
         "body": "",
         "meta": {},
         "title": "Getting Started",
-        "type": "",
     }
     registry = build_registry([p])
     assert registry["getting started"] is p
@@ -330,7 +391,6 @@ def _index_page(rel, title=None):
         "body": "",
         "meta": {"title": title} if title else {},
         "title": title or chain[-1],
-        "type": "",
     }
 
 

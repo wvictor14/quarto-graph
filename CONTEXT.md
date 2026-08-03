@@ -36,6 +36,32 @@ inherits the other from the project default, it does not reset it.
 widget's `depth`, but `root` is always the current page, since there's no
 mini-panel shortcode call to attach a `root=` kwarg to.
 
+**Color scheme** (`quarto-graph: color:` in `_quarto.yml`):
+How to color graph nodes. A scheme has a `by` mode (how to bucket a page:
+`folder` for its top-level folder, `(root)` for project-top-level pages;
+`depth` for its path depth, root = 0; or `custom` for an exact map) and a
+`palette` (`okabe-ito` colorblind-safe, `d3-category10` categorical, or
+`viridis` sequential for depth shading; qualitative palettes auto-generate
+golden-angle-spread colors past their preset size). `custom` schemes carry
+a `custom: {bucket: hex}` map; unmapped buckets fall back to gray. Two
+built-ins exist, `by-folder` (folder + okabe-ito, the default) and
+`by-depth` (depth + viridis); a user scheme with the same name overrides a
+built-in, a new name adds one. `default-scheme:` names the scheme widgets
+show without an explicit override. Colors are baked into graph.json per
+node at post-render; graph.js holds no palette logic and only looks up
+`node.colors[activeScheme]`.
+_Avoid_: type (an Obsidian skeleton from an old version, deliberately
+removed end-to-end; a future `categories:` frontmatter key could replace
+it, still out of scope)
+
+**Per-widget scheme** (shortcode):
+`{{< quarto-graph-full color-scheme="name" >}}` kwarg overriding which
+color scheme that one widget instance uses, instead of
+`color: default-scheme:`. Custom maps stay project-level (scheme defined
+in `_quarto.yml`, referenced by name here); a shortcode can't carry its
+own inline map. Unknown scheme names fall back to the default scheme's
+colors, never a hard error.
+
 **Exclude** (`quarto-graph: exclude:` in `_quarto.yml`, project-level only):
 a list of quarto-graph's own patterns (trailing `/` = a directory and
 everything under it, otherwise a plain glob) naming pages that don't
